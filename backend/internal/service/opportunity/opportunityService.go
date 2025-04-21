@@ -76,7 +76,7 @@ func (service *OpportunityService) CreateOpportunity(request models.CreateOpport
 	err = service.repo.CreateOpportunity(&opportunityModel)
 	if err != nil {
 		log.Error(err)
-		return writeStatus(nil, "Internal error occured whilst creating opportunity", false)
+		return writeStatus(nil, "Internal error occurred whilst creating opportunity", false)
 	}
 
 	return writeStatus(&opportunityModel, "", true)
@@ -94,7 +94,11 @@ func writeStatus(model *models.OpportunityModel, message string, success bool) *
 func (service *OpportunityService) GetOpportunity(opportunityUUID uuid.UUID) (*models.OpportunityModel, error) {
 	opportunity, err := service.repo.GetOpportunity(&opportunityUUID)
 	if err != nil {
+		log.Error(err)
 		return nil, err
+	}
+	if opportunity == nil {
+		return nil, nil
 	}
 	model := *opportunity
 	return &model[0], nil
