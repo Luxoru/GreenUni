@@ -4,8 +4,9 @@ import (
 	"backend/internal/db"
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
 	"testing"
+
+	"github.com/google/uuid"
 )
 
 func TestName(t *testing.T) {
@@ -33,7 +34,7 @@ func TestName(t *testing.T) {
 	}
 
 	columns := []Column{
-		NewVarcharColumn("username", "Des"),
+		NewVarcharColumn("username", "Test"),
 	}
 
 	_, err = repo.ExecuteQuery("SELECT uuid, username, hashed_pass, salt FROM UserTable WHERE username = ?", columns, QueryOptions{
@@ -64,7 +65,6 @@ func TestName(t *testing.T) {
 
 		},
 	})
-	fmt.Println("NIGGERS")
 	if err != nil {
 		return
 	}
