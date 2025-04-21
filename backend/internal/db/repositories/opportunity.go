@@ -12,8 +12,8 @@ import (
 )
 
 //TODO: optimise fetching process. Batch calls needed
-// (18/4) pretty much done now
-// (18/4) Need to speed up insertion. Takes too long
+// (20/4) pretty much done now
+// (21/4) Need to speed up insertion. Takes too long
 
 //Represents opportunities
 
