@@ -94,7 +94,6 @@ func writeStatus(model *models.OpportunityModel, message string, success bool) *
 func (service *OpportunityService) GetOpportunity(opportunityUUID uuid.UUID) (*models.OpportunityModel, error) {
 	opportunity, err := service.repo.GetOpportunity(&opportunityUUID)
 	if err != nil {
-		log.Error(err)
 		return nil, err
 	}
 	if opportunity == nil {
