@@ -18,6 +18,7 @@ func main() {
 	// Setup databases and repositories
 
 	// Mysql
+	//TODO: maybe load from config
 	container := mysql.Container{}
 	config := mysql.Configurations{
 		Authentication: &db.AuthenticationConfigurations{
