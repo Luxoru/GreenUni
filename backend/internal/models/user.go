@@ -102,3 +102,14 @@ func (roleType *RoleType) UnmarshalJSON(data []byte) error {
 	*roleType = parsed
 	return nil
 }
+
+type GetUserRequest struct {
+	UserUUID string
+	Username string
+}
+
+type GetUserResponse struct {
+	Success bool
+	Message string
+	Data    *UserInfoModel
+}
