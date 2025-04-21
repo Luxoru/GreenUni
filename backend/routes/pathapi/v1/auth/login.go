@@ -37,7 +37,8 @@ func (path *LoginPath) SetupComponents(sqlRepository *mysql.Repository) chi.Rout
 func (path *LoginPath) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		path.service.Login("", "")
+		loginStatus := path.service.Login("", "")
+		response.WriteJson(w, loginStatus)
 		return
 	}
 
