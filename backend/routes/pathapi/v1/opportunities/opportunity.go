@@ -1,7 +1,6 @@
 package opportunities
 
 import (
-	"backend/api"
 	"backend/internal/db/adapters/mysql"
 	"backend/internal/db/repositories"
 	"backend/internal/models"
@@ -9,7 +8,6 @@ import (
 	response "backend/internal/utils/http"
 	"backend/routes/pathapi"
 	"encoding/json"
-	"fmt"
 	"github.com/go-chi/chi"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -44,7 +42,7 @@ func (path *Path) CreateOpportunity(writer http.ResponseWriter, request *http.Re
 
 	var req models.CreateOpportunityRequest
 	if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
-		api.RequestErrorhandler(writer, fmt.Errorf("invalid JSON body"))
+		response.WriteJson(writer, response.ErrorResponse("invalid JSON body"))
 		return
 	}
 
@@ -71,7 +69,7 @@ func (path *Path) GetOpportunity(w http.ResponseWriter, r *http.Request) {
 	case postUUID != "":
 		path.getByUUID(w, postUUID)
 	default:
-		api.RequestErrorhandler(w, fmt.Errorf("no postUUID or tagName provided"))
+		response.WriteJson(w, response.ErrorResponse("no postUUID or tagName provided"))
 	}
 }
 
@@ -109,7 +107,7 @@ func (path *Path) getByUUID(w http.ResponseWriter, uuidStr string) {
 	post, err := path.service.GetOpportunity(postID)
 	if err != nil {
 		log.Error(err)
-		model.Message = "Internal error occured"
+		model.Message = "Internal error occurred"
 		response.WriteJson(w, model)
 		return
 	}
