@@ -39,7 +39,8 @@ func (path *SignupPath) SetupComponents(sqlRepository *mysql.Repository) chi.Rou
 func (path *SignupPath) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		path.service.Signup("", "", "", "")
+		status := path.service.Signup("", "", "", "")
+		response.WriteJson(w, status)
 		return
 	}
 
