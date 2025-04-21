@@ -5,7 +5,7 @@ import "backend/internal/models"
 type LoginStatus struct {
 	LoginAllowed bool        `json:"success"`
 	Message      string      `json:"message"`
-	Info         interface{} `json:"info,omitempty"`
+	Info         interface{} `json:"info"`
 }
 
 type SignupStatus struct {
