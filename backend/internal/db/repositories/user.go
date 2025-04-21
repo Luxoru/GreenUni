@@ -37,10 +37,8 @@ LEFT JOIN RecruiterTable rt
     ON rt.uuid = ut.uuid
 LEFT JOIN StudentTable st
     ON st.uuid = ut.uuid
-WHERE ut.uuid = ?
+WHERE ut.uuid = ?`
 
-
-WHERE uuid = ?;`
 const GetUserByUsernameFromTableQuery = `
 SELECT ut.uuid, ut.username, ut.email, ut.hashed_pass, ut.salt, ut.role, rt.organisationName, rt.applicationStatus, st.points FROM UserTable ut
 LEFT JOIN RecruiterTable rt
@@ -181,6 +179,7 @@ func (repo *UserRepository) GetUserByID(userUUID uuid.UUID, options mysql.QueryO
 	rows, err := container.ExecuteQuery(GetUserByUUIDFromTableQuery, columns, options)
 	defer rows.Close()
 	if err != nil {
+		log.Error(err)
 		return nil, err
 	}
 
