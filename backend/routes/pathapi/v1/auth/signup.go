@@ -17,10 +17,10 @@ type SignupPath struct {
 }
 
 type SignupRequest struct {
-	Username string
-	Password string
-	Email    string
-	Role     string
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
+	Role     string `json:"role"`
 }
 
 func (path *SignupPath) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
