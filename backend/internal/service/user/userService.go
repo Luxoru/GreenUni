@@ -5,6 +5,7 @@ import (
 	"backend/internal/db/repositories"
 	"backend/internal/models"
 	"github.com/google/uuid"
+	log "github.com/sirupsen/logrus"
 )
 
 // Service provides methods for managing users.
@@ -100,8 +101,52 @@ func (service *Service) GetUserByName(username string) (interface{}, error) {
 	}
 }
 
-func (service *Service) GetUser() {
+func (service *Service) GetUser(request *models.GetUserRequest) *models.GetUserResponse {
 
+	if request.UserUUID == "" && request.Username == "" {
+		return writeStatus(nil, "username/userID not provided", false)
+	}
+
+	if request.UserUUID != "" {
+		parsedUUID, err := uuid.Parse(request.UserUUID)
+		if err != nil {
+			return writeStatus(nil, "uuid couldn't be parsed", false)
+		}
+		user, err := service.GetRawUserByID(parsedUUID)
+		if err != nil {
+			log.Errorf("error occured: %s", err)
+			return writeStatus(nil, "error occured fetching user", false)
+		}
+		if user == nil {
+			return writeStatus(nil, "user with id "+request.UserUUID+" doesnt exist", false)
+		}
+
+		return writeStatus(GetUserInfo(user), "", true)
+	}
+
+	if request.Username == "" {
+		return writeStatus(nil, "invalid request. Username/UserID not defined", false)
+	}
+
+	user, err := service.GetRawUserByName(request.Username)
+	if err != nil {
+		log.Errorf("error occured: %s", err)
+		return writeStatus(nil, "error occured fetching user", false)
+	}
+	if user == nil {
+		return writeStatus(nil, "user with name "+request.Username+" doesnt exist", false)
+	}
+
+	return writeStatus(GetUserInfo(user), "", true)
+
+}
+
+func writeStatus(model *models.UserInfoModel, message string, success bool) *models.GetUserResponse {
+	return &models.GetUserResponse{
+		Success: success,
+		Message: message,
+		Data:    model,
+	}
 }
 
 func (service *Service) GetRawUserByID(userID uuid.UUID) (*models.RawUserRow, error) {
