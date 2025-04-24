@@ -31,10 +31,17 @@ func (service *Service) Signup(username string, password string, email string, r
 		return setSignupStatus(nil, "error creating account", false)
 	}
 
-	//TODO: Check if email already exists
-
 	if name != nil {
 		return setSignupStatus(nil, "An account with this name already exists", false)
+	}
+
+	name, err = service.repo.GetUserByEmail(email, mysql.QueryOptions{})
+	if err != nil {
+		return setSignupStatus(nil, "error creating account", false)
+	}
+
+	if name != nil {
+		return setSignupStatus(nil, "An account with this email already exists", false)
 	}
 
 	salt, err := security.GenerateSalt(16)

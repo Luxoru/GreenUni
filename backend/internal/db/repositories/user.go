@@ -47,6 +47,14 @@ LEFT JOIN StudentTable st
     ON st.uuid = ut.uuid
 WHERE ut.username = ?`
 
+const GetUserByEmailFromTableQuery = `
+SELECT ut.uuid, ut.username, ut.email, ut.hashed_pass, ut.salt, ut.role, rt.organisationName, rt.applicationStatus, st.points FROM UserTable ut
+LEFT JOIN RecruiterTable rt
+    ON rt.uuid = ut.uuid
+LEFT JOIN StudentTable st
+    ON st.uuid = ut.uuid
+WHERE ut.email = ?`
+
 //Student table -> See points.go
 
 //Recruiter table -> On register account portal can register as student or recruiter. When registered initially status set as false
@@ -239,7 +247,27 @@ func (repo *UserRepository) GetUserByName(username string, options mysql.QueryOp
 		log.Error(err)
 		return nil, err
 	}
+	return getUser(rows)
+}
 
+// GetUserByEmail retrieves a user by email from the database
+func (repo *UserRepository) GetUserByEmail(email string, options mysql.QueryOptions) (*models.RawUserRow, error) {
+	container := repo.Repository
+
+	columns := []mysql.Column{
+		mysql.NewVarcharColumn("email", email),
+	}
+
+	rows, err := container.ExecuteQuery(GetUserByEmailFromTableQuery, columns, options)
+	defer rows.Close()
+	if err != nil {
+		log.Error(err)
+		return nil, err
+	}
+	return getUser(rows)
+}
+
+func getUser(rows *sql.Rows) (*models.RawUserRow, error) {
 	for rows.Next() {
 		var uid uuid.UUID
 		var username string
@@ -278,6 +306,5 @@ func (repo *UserRepository) GetUserByName(username string, options mysql.QueryOp
 
 		return &user, nil
 	}
-
 	return nil, nil
 }
