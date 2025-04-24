@@ -1,28 +1,55 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { Modal,View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/auth/AuthContext';
+import { Alert } from 'react-native';
+
+
 
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
+
 
   const handleLogin = async () => {
-    // Login logic here (e.g., API request)
-    console.log('Logging in with:', email, password);
-
-    // Simulate API call to get token - replace with your actual API call
-    const mockToken = "user-token-" + Date.now();
-    
-    // Save token and update login state
-    await login(mockToken);
-
-    // Navigate to home or dashboard after successful login
-    router.push('/explore');
+    try {
+      const response = await fetch('http://192.168.1.58:8080/api/v1/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
+      });
+  
+      if (!response.ok) {
+        const errorText = await response.message();
+        throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
+      }
+  
+      const data = await response.json();
+  
+      if (!data.success) {
+        Alert.alert('Login Failed', data.message.trim());
+        return;
+      }
+      console.log(data)
+      await login(data.info.token)
+  
+      router.push('/explore');
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert('Login Failed', 'Unable to login. Please check your credentials or try again later.');
+    }
   };
-
+  
+  
   return (
     <View style={styles.container}>
       <Text style={styles.heading}>Login</Text>
