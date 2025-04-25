@@ -37,13 +37,16 @@ func (path *LoginPath) SetupComponents(sqlRepository *mysql.Repository) chi.Rout
 func (path *LoginPath) Login(w http.ResponseWriter, r *http.Request) {
 	var req LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		loginStatus := path.service.Login("", "")
-		response.WriteJson(w, loginStatus)
+		response.WriteJson(w, response.ErrorResponse("Invalid request body"))
+		return
+	}
+
+	if req.Username == "" || req.Password == "" {
+		response.WriteJson(w, response.ErrorResponse("Username and password are required"))
 		return
 	}
 
 	loginStatus := path.service.Login(req.Username, req.Password)
-
 	response.WriteJson(w, loginStatus)
 }
 
