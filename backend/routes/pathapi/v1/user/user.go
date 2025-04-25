@@ -8,6 +8,7 @@ import (
 	response "backend/internal/utils/http"
 	"backend/routes/pathapi"
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 	"net/http"
 )
 
@@ -19,7 +20,9 @@ type Path struct {
 func (path *Path) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
-	r.Get("/", path.GetUser) // user
+	r.Get("/{id}", path.GetUserByID)
+	r.Get("/username/{username}", path.GetUserByUsername)
+
 	//r.Delete("/", path.DeleteUser)
 	//r.Put("/me", path.GetCurrentUser)
 
@@ -35,21 +38,35 @@ func (path *Path) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
 	path.service = user.NewUserService(repository)
 	return r
 }
+func (path *Path) GetUserByID(w http.ResponseWriter, r *http.Request) {
+	idStr := chi.URLParam(r, "id")
 
-func (path *Path) GetUser(w http.ResponseWriter, r *http.Request) {
-	query := r.URL.Query()
-	userID := query.Get("userID")
-	username := query.Get("username")
-
-	model := models.GetUserRequest{
-		UserUUID: userID,
-		Username: username,
+	if idStr == "" {
+		response.WriteJson(w, response.ErrorResponse("User ID is required"))
+		return
 	}
 
-	getUser := path.service.GetUser(&model)
+	if _, err := uuid.Parse(idStr); err != nil {
+		response.WriteJson(w, response.ErrorResponse("Invalid UUID format"))
+		return
+	}
 
-	response.WriteJson(w, getUser)
+	req := &models.GetUserRequest{UserUUID: idStr}
+	result := path.service.GetUser(req)
+	response.WriteJson(w, result)
+}
 
+func (path *Path) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
+	username := chi.URLParam(r, "username")
+
+	if username == "" {
+		response.WriteJson(w, response.ErrorResponse("Username is required"))
+		return
+	}
+
+	req := &models.GetUserRequest{Username: username}
+	result := path.service.GetUser(req)
+	response.WriteJson(w, result)
 }
 
 func Route() pathapi.PathComponent {
