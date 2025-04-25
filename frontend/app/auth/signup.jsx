@@ -67,6 +67,7 @@ export default function SignUp() {
         style={styles.input}
         placeholder="Password"
         secureTextEntry
+        autoCapitalize="none"
         value={password}
         onChangeText={setPassword}
       />
