@@ -3,6 +3,7 @@ package opportunity
 import (
 	"backend/internal/db/repositories"
 	"backend/internal/models"
+	response "backend/internal/utils/http"
 	"errors"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
@@ -131,4 +132,74 @@ func (service *OpportunityService) GetOpportunitiesFrom(from string, limit strin
 	}
 
 	return service.repo.GetOpportunitiesFrom(fromInt, limitInt)
+}
+
+func (service *OpportunityService) LikeOpportunity(userID, postID string) *response.Response {
+	userUUID, postUUID, errResp := parseUUIDs(userID, postID)
+	if errResp != nil {
+		return errResp
+	}
+
+	if err := service.repo.LikeOpportunity(userUUID, postUUID); err != nil {
+		log.Error(err)
+		return response.ErrorResponse("Internal error occurred")
+	}
+
+	return response.SuccessResponse(nil, "Successfully liked opportunity")
+}
+
+func (service *OpportunityService) DislikeOpportunity(userID, postID string) *response.Response {
+	userUUID, postUUID, errResp := parseUUIDs(userID, postID)
+	if errResp != nil {
+		return errResp
+	}
+
+	if err := service.repo.DislikeOpportunity(userUUID, postUUID); err != nil {
+		log.Error(err)
+		return response.ErrorResponse("Internal error occurred")
+	}
+
+	return response.SuccessResponse(nil, "Successfully disliked opportunity")
+}
+
+func (service *OpportunityService) DeleteLikeOpportunity(userID, postID string) *response.Response {
+	userUUID, postUUID, errResp := parseUUIDs(userID, postID)
+	if errResp != nil {
+		return errResp
+	}
+
+	if err := service.repo.DeleteLikeOpportunity(userUUID, postUUID); err != nil {
+		log.Error(err)
+		return response.ErrorResponse("Internal error occurred")
+	}
+
+	return response.SuccessResponse(nil, "Successfully deleted liked opportunity")
+}
+
+func (service *OpportunityService) DeleteDislikeOpportunity(userID, postID string) *response.Response {
+	userUUID, postUUID, errResp := parseUUIDs(userID, postID)
+	if errResp != nil {
+		return errResp
+	}
+
+	if err := service.repo.DeleteDislikeOpportunity(userUUID, postUUID); err != nil {
+		log.Error(err)
+		return response.ErrorResponse("Internal error occurred")
+	}
+
+	return response.SuccessResponse(nil, "Successfully deleted disliked opportunity")
+}
+
+func parseUUIDs(userID, postID string) (uuid.UUID, uuid.UUID, *response.Response) {
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, response.ErrorResponse("Unable to parse user uuid")
+	}
+
+	postUUID, err := uuid.Parse(postID)
+	if err != nil {
+		return uuid.Nil, uuid.Nil, response.ErrorResponse("Unable to parse post uuid")
+	}
+
+	return userUUID, postUUID, nil
 }

@@ -84,6 +84,7 @@ LEFT JOIN TagsTable tt
 const DeleteOpportunityQuery = "DELETE FROM OpportunitiesTable WHERE uuid = ?"
 
 // Tracks opportunities a user has liked
+
 const CreateOpportunityLikesTable = `
 CREATE TABLE IF NOT EXISTS OpportunityLikesTable (
     userUUID VARCHAR(36),
@@ -97,6 +98,11 @@ CREATE TABLE IF NOT EXISTS OpportunityLikesTable (
 
 const AddOpportunityLikeQuery = `
 INSERT INTO OpportunityLikesTable(userUUID, opportunityUUID) VALUES %s
+`
+
+const RemoveOpportunityLikesQuery = `
+DELETE FROM OpportunityLikesTable 
+WHERE userUUID = ? AND opportunityUUID IN (%s)
 `
 
 const GetOpportunityLikesQuery = `
@@ -116,14 +122,10 @@ LEFT JOIN TagsTable tt
 WHERE OpportunityLikesTable.userUUID = ?
 `
 
-const RemoveOpportunityLikesQuery = `
-DELETE FROM OpportunityLikesTable 
-WHERE userUUID = ? AND opportunityUUID IN (%s)
-`
-
 const CreateOpportunityLikedIndex = "CREATE INDEX idx_like_user ON OpportunityLikesTable(userUUID);"
 
 // Tracks opportunities a user has disliked
+
 const CreateOpportunityDislikesTable = `
 CREATE TABLE IF NOT EXISTS OpportunityDislikesTable (
     userUUID VARCHAR(36),
@@ -137,6 +139,11 @@ CREATE TABLE IF NOT EXISTS OpportunityDislikesTable (
 
 const AddOpportunityDisLikeQuery = `
 INSERT INTO OpportunityDislikesTable(userUUID, opportunityUUID) VALUES %s
+`
+
+const RemoveOpportunityDisLikesQuery = `
+DELETE FROM OpportunityDislikesTable 
+WHERE userUUID = ? AND opportunityUUID IN (%s)
 `
 
 const GetOpportunityDisLikesQuery = `
@@ -154,11 +161,6 @@ LEFT JOIN OpportunityTagsTable ott
 LEFT JOIN TagsTable tt
   ON ott.tagID = tt.id
 WHERE OpportunityDislikesTable.userUUID = ?
-`
-
-const RemoveOpportunityDisLikesQuery = `
-DELETE FROM OpportunityDislikesTable 
-WHERE userUUID = ? AND opportunityUUID IN (%s)
 `
 
 const CreateOpportunityDislikedIndex = "CREATE INDEX idx_dislike_user ON OpportunityDislikesTable(userUUID);"
@@ -433,6 +435,40 @@ func (repo *OpportunityRepository) GetOpportunitiesFrom(from int64, limit int64)
 	}
 
 	return getOpportunity(rows)
+}
+
+func (repo *OpportunityRepository) LikeOpportunity(userUUID, opportunityUUID uuid.UUID) error {
+	return repo.insertAction(userUUID, opportunityUUID, AddOpportunityLikeQuery)
+}
+
+func (repo *OpportunityRepository) DeleteLikeOpportunity(userUUID, opportunityUUID uuid.UUID) error {
+	return repo.deleteAction(userUUID, opportunityUUID, RemoveOpportunityLikesQuery)
+}
+
+func (repo *OpportunityRepository) DislikeOpportunity(userUUID, opportunityUUID uuid.UUID) error {
+	return repo.insertAction(userUUID, opportunityUUID, AddOpportunityDisLikeQuery)
+}
+
+func (repo *OpportunityRepository) DeleteDislikeOpportunity(userUUID, opportunityUUID uuid.UUID) error {
+	return repo.deleteAction(userUUID, opportunityUUID, RemoveOpportunityDisLikesQuery)
+}
+func (repo *OpportunityRepository) insertAction(userUUID, opportunityUUID uuid.UUID, query string) error {
+	columns := buildUUIDColumnsAction(userUUID, opportunityUUID)
+	_, err := repo.Repository.ExecuteInsert(query, columns, mysql.InsertOptions{})
+	return err
+}
+
+func (repo *OpportunityRepository) deleteAction(userUUID, opportunityUUID uuid.UUID, query string) error {
+	columns := buildUUIDColumnsAction(userUUID, opportunityUUID)
+	_, err := repo.Repository.ExecuteQuery(query, columns, mysql.QueryOptions{})
+	return err
+}
+
+func buildUUIDColumnsAction(userUUID, opportunityUUID uuid.UUID) []mysql.Column {
+	return []mysql.Column{
+		mysql.NewUUIDColumn("userUUID", userUUID),
+		mysql.NewUUIDColumn("opportunityUUID", opportunityUUID),
+	}
 }
 
 func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, int64, error) {
