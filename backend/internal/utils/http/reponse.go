@@ -10,16 +10,22 @@ func WriteJson(w http.ResponseWriter, obj interface{}) {
 	json.NewEncoder(w).Encode(obj)
 }
 
-func SuccessResponse(data interface{}) map[string]interface{} {
-	return map[string]interface{}{
-		"success": true,
-		"data":    data,
+type Response struct {
+	Success bool        `json:"success"`
+	Data    interface{} `json:"data,omitempty"`
+	Message string      `json:"message,omitempty"`
+}
+
+func SuccessResponse(data interface{}, message string) *Response {
+	return &Response{
+		Success: true,
+		Data:    data,
 	}
 }
 
-func ErrorResponse(message string) map[string]interface{} {
-	return map[string]interface{}{
-		"success": false,
-		"message": message,
+func ErrorResponse(message string) *Response {
+	return &Response{
+		Success: false,
+		Message: message,
 	}
 }
