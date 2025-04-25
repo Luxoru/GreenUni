@@ -7,9 +7,11 @@ import {
   Dimensions, 
   TouchableOpacity,
   Image,
-  Animated
+  Animated,
+  Alert
 } from 'react-native';
 import axios from 'axios';
+import * as SecureStore from 'expo-secure-store';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
@@ -119,9 +121,19 @@ const VolunteerPage = () => {
   const [isCardExpanded, setIsCardExpanded] = useState(false);
 
   const fetchData = async (from) => {
-    try {
-      setIsLoading(true);
-      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5`);
+      try {
+        setIsLoading(true);
+
+        const userStr = await SecureStore.getItemAsync('user');
+
+      if (!userStr) {
+        console.warn("No user found in SecureStore.");
+        return;
+      }
+
+      const user = JSON.parse(userStr);
+
+      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
 
       console.log("Fetching from " + from);
 
@@ -170,13 +182,48 @@ const VolunteerPage = () => {
     }
   }, [currentIndex, data.length]);
 
-  const handleLike = (id) => {
+  const handleLike = async (id) => {
     console.log(`Liked post ${id}`);
+  
+    const userStr = await SecureStore.getItemAsync('user');
+
+    if (!userStr) {
+      console.warn("No user found in SecureStore.");
+      return;
+    }
+
+    const user = JSON.parse(userStr);
+  
+    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/likes/${user.uuid}/${id}`);
+
+    console.log(response.data.success)
+
+    if(!response.data.success){
+      Alert.alert('Liking failed', `${response.data.message}`);
+    }
+  
     moveToNextCard();
   };
+  
 
-  const handleDislike = (id) => {
+  const handleDislike = async (id) => {
     console.log(`Disliked post ${id}`);
+
+    const userStr = await SecureStore.getItemAsync('user');
+
+    if (!userStr) {
+      console.warn("No user found in SecureStore.");
+      return;
+    }
+
+    const user = JSON.parse(userStr);
+  
+    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/dislikes/${user.uuid}/${id}`);
+
+    if(response.data.success == false){
+      Alert.alert('Disliking failed', `${response.data.message}`);
+    }
+
     moveToNextCard();
   };
 
@@ -210,6 +257,7 @@ const VolunteerPage = () => {
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#FF4949" />
         <Text style={styles.loadingText}>No more opportunities!</Text>
+        <Text style={styles.loadingText}>Come back later!</Text>
       </View>
     );
   }
@@ -348,7 +396,7 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   loadingText: {
-    marginTop: 15,
+    marginTop: 5,
     fontSize: 16,
     color: '#666',
   },
