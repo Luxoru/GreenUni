@@ -3,6 +3,7 @@ import { Modal,View, Text, TextInput, Button, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/auth/AuthContext';
 import { Alert } from 'react-native';
+import * as SecureStore from 'expo-secure-store';
 
 
 
@@ -39,8 +40,9 @@ export default function Login() {
         Alert.alert('Login Failed', data.message.trim());
         return;
       }
-      console.log(data)
+      console.log(data.info.user)
       await login(data.info.token)
+      await SecureStore.setItemAsync('user', JSON.stringify(data.info.user));
   
       router.push('/explore');
     } catch (error) {
