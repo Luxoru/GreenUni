@@ -27,7 +27,6 @@ func (path *LoginPath) SetupComponents(sqlRepository *mysql.Repository) chi.Rout
 	r.Post("/", path.Login)
 	repository, err := repositories.NewUserRepository(sqlRepository)
 	if err != nil {
-		panic(err)
 		return nil
 	}
 	path.service = auth.NewAuthService(repository)

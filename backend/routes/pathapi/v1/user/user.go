@@ -30,7 +30,6 @@ func (path *Path) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
 
 	repository, err := repositories.NewUserRepository(sqlRepository)
 	if err != nil {
-		panic(err)
 		return nil
 	}
 	path.service = user.NewUserService(repository)
