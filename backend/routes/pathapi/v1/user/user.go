@@ -4,6 +4,7 @@ import (
 	"backend/internal/db/adapters/mysql"
 	"backend/internal/db/repositories"
 	"backend/internal/models"
+	"backend/internal/security"
 	"backend/internal/service/user"
 	response "backend/internal/utils/http"
 	"backend/routes/pathapi"
@@ -20,11 +21,11 @@ type Path struct {
 func (path *Path) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
+	r.Get("/me", path.GetCurrentUser)
 	r.Get("/{id}", path.GetUserByID)
 	r.Get("/username/{username}", path.GetUserByUsername)
 
 	//r.Delete("/", path.DeleteUser)
-	//r.Put("/me", path.GetCurrentUser)
 
 	//Photos upload stuff
 	//r.Put("/me/photos", path.AddPhoto)       //Add photo to profile
@@ -67,6 +68,18 @@ func (path *Path) GetUserByUsername(w http.ResponseWriter, r *http.Request) {
 	req := &models.GetUserRequest{Username: username}
 	result := path.service.GetUser(req)
 	response.WriteJson(w, result)
+}
+
+func (path *Path) GetCurrentUser(writer http.ResponseWriter, request *http.Request) {
+	userInfo, err := security.ExtractUserInfoFromJWT(request)
+	if err != nil {
+		response.WriteJson(writer, response.ErrorResponse("Unauthorized"))
+		return
+	}
+
+	req := &models.GetUserRequest{Username: userInfo.Username}
+	res := path.service.GetUser(req)
+	response.WriteJson(writer, res)
 }
 
 func Route() pathapi.PathComponent {
