@@ -7,8 +7,9 @@ import (
 	response "backend/internal/utils/http"
 	"backend/routes/pathapi"
 	"encoding/json"
-	"github.com/go-chi/chi"
 	"net/http"
+
+	"github.com/go-chi/chi"
 )
 
 type SignupPath struct {
@@ -26,26 +27,32 @@ type SignupRequest struct {
 func (path *SignupPath) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
-	r.Post("/", path.Signup)
-	repository, err := repositories.NewUserRepository(sqlRepository)
+
+	userRepo, err := repositories.NewUserRepository(sqlRepository)
 	if err != nil {
 		return nil
 	}
-	path.service = auth.NewAuthService(repository)
+
+	path.service = auth.NewAuthService(userRepo)
+
+	r.Post("/", path.Signup)
 	return r
 }
 
 func (path *SignupPath) Signup(w http.ResponseWriter, r *http.Request) {
 	var req SignupRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		status := path.service.Signup("", "", "", "")
-		response.WriteJson(w, status)
+		response.WriteJson(w, response.ErrorResponse("Invalid request body"))
+		return
+	}
+
+	if req.Username == "" || req.Password == "" || req.Email == "" || req.Role == "" {
+		response.WriteJson(w, response.ErrorResponse("All fields are required"))
 		return
 	}
 
 	status := path.service.Signup(req.Username, req.Password, req.Email, req.Role)
 	response.WriteJson(w, status)
-
 }
 
 func SignupRoute() pathapi.PathComponent {
