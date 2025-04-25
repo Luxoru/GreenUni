@@ -21,7 +21,7 @@ const GreenCard = memo(({ item, onLike, onDislike }) => {
     <View style={styles.cardContainer}>
       <View style={styles.card}>
         <Image
-          source={{ uri: item.imageUrl }}
+          source={{ uri: item.media[item.media.length - 1].URL }}
           style={styles.cardImage}
           resizeMode="cover"
         />
@@ -30,19 +30,19 @@ const GreenCard = memo(({ item, onLike, onDislike }) => {
             {item.title}
           </Text>
           <Text style={styles.body} numberOfLines={2} ellipsizeMode="tail">
-            {item.body}
+            {item.description}
           </Text>
         </View>
         <View style={styles.buttonContainer}>
           <TouchableOpacity 
             style={[styles.button, styles.dislikeButton]} 
-            onPress={() => onDislike(item.id)}
+            onPress={() => onDislike(item.uuid)}
           >
             <Text style={styles.buttonText}>✕</Text>
           </TouchableOpacity>
           <TouchableOpacity 
             style={[styles.button, styles.likeButton]} 
-            onPress={() => onLike(item.id)}
+            onPress={() => onLike(item.uuid)}
           >
             <Text style={styles.buttonText}>❤</Text>
           </TouchableOpacity>
@@ -75,18 +75,27 @@ const VolunteerPage = () => {
   const [page, setPage] = useState(1);
   const [currentIndex, setCurrentIndex] = useState(0);
 
+
+
   
-  const fetchData = async (pageNum) => {
+  const fetchData = async (from) => {
     try {
       setIsLoading(true);
-      const response = await axios.get(`https://jsonplaceholder.typicode.com/posts?_page=${pageNum}&_limit=5`);
-      
-      
-      const enhancedData = response.data.map(item => ({
+      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5`);
+  
+      console.log("Fetching from " + from);
+  
+      if (!response.data.models) {
+        return [];
+      }
+
+      setPage(response.data.lastIndex);
+  
+      const enhancedData = response.data.models.map(item => ({
         ...item,
-        imageUrl: `https://picsum.photos/seed/${item.id}/400/600`
+        imageUrl: item.media[item.media.length - 1]?.URL || '', 
       }));
-      
+  
       return enhancedData;
     } catch (error) {
       console.error(error);
@@ -95,6 +104,7 @@ const VolunteerPage = () => {
       setIsLoading(false);
     }
   };
+  
 
   // Load initial data
   useEffect(() => {
@@ -121,7 +131,6 @@ const VolunteerPage = () => {
 
   // Check if we need to load more data
   useEffect(() => {
-    // If we're near the end of our data, load more
     if (data.length > 0 && currentIndex >= data.length - 2) {
       loadMoreData();
     }
@@ -129,6 +138,9 @@ const VolunteerPage = () => {
 
   const handleLike = (id) => {
     console.log(`Liked post ${id}`);
+
+    //Send data to db
+
     // Move to the next card
     moveToNextCard();
   };
@@ -136,6 +148,9 @@ const VolunteerPage = () => {
   const handleDislike = (id) => {
     console.log(`Disliked post ${id}`);
     // Move to the next card
+
+    //Send data to ddb
+
     moveToNextCard();
   };
 
@@ -155,7 +170,7 @@ const VolunteerPage = () => {
   const currentCard = data[currentIndex];
   const nextCard = data[currentIndex + 1];
 
-  if (!currentCard) {
+  if (!currentCard && isLoading) {
     return (
       <View style={styles.container}>
         <ActivityIndicator size="large" color="#FF4949" />
@@ -163,6 +178,16 @@ const VolunteerPage = () => {
       </View>
     );
   }
+  
+  if (!currentCard && !isLoading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#FF4949" />
+        <Text style={styles.loadingText}>No more opportunities!</Text>
+      </View>
+    );
+  }
+  
 
   return (
     <View style={styles.container}>
