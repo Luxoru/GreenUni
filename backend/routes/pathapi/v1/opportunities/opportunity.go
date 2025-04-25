@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
-	"strings"
+	"strconv"
 )
 
 type Path struct {
@@ -25,168 +25,130 @@ func (path *Path) SetupComponents(repo *mysql.Repository) chi.Router {
 
 	repository, err := repositories.NewOpportunityRepository(repo)
 	if err != nil {
-		log.Error(err)
-		return nil
+		log.Fatal("Failed to initialize OpportunityRepository: ", err)
 	}
 
 	path.service = opportunity.NewOpportunityService(repository)
-	r.Get("/", path.GetOpportunity)
+
+	r.Get("/", path.GetOpportunities)
 	r.Post("/", path.CreateOpportunity)
-	r.Delete("/", path.DeleteOpportunity)
-	//r.Get("/feed", path.GetOpportunityFeed) //Gets feed based on liked tags etc. -> Most likely handled by tiktok api?
+	r.Delete("/{uuid}", path.DeleteOpportunity)
+	r.Get("/{uuid}", path.GetByUUID)
 
 	path.router = r
 	return r
 }
 
-func (path *Path) CreateOpportunity(writer http.ResponseWriter, request *http.Request) {
-
+func (path *Path) CreateOpportunity(w http.ResponseWriter, r *http.Request) {
 	var req models.CreateOpportunityRequest
-	if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
-		response.WriteJson(writer, response.ErrorResponse("invalid JSON body"))
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		response.WriteJson(w, response.ErrorResponse("Invalid request body"))
 		return
 	}
 
 	status := path.service.CreateOpportunity(req)
-
-	response.WriteJson(writer, status)
-
+	response.WriteJson(w, status)
 }
 
-type GetOpportunityResponseModel struct {
-	Models  *[]models.OpportunityModel `json:"models"`
-	Success bool                       `json:"Success"`
-	Message string                     `json:"Message"`
-}
-
-func (path *Path) GetOpportunity(w http.ResponseWriter, r *http.Request) {
+func (path *Path) GetOpportunities(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
-	postUUID := query.Get("uuid")
-	tagName := query.Get("tag")
-	from := query.Get("from")
-	to := query.Get("limit")
 
 	switch {
-	case tagName != "":
-		path.getByTag(w, tagName)
-	case postUUID != "":
-		path.getByUUID(w, postUUID)
-	case from != "" && to != "":
-		path.getFrom(w, from, to)
+	case query.Has("tag"):
+		path.getByTag(w, query.Get("tag"))
+	case query.Has("uuid"):
+		path.getByUUID(w, query.Get("uuid"))
+	case query.Has("from") && query.Has("limit"):
+		path.getPaginated(w, query.Get("from"), query.Get("limit"))
 	default:
-		response.WriteJson(w, response.ErrorResponse("no postUUID or tagName provided"))
+		response.WriteJson(w, response.ErrorResponse("Missing query: expected ?tag=, ?uuid=, or ?from=&limit="))
 	}
 }
 
-func (path *Path) getByTag(w http.ResponseWriter, tagName string) {
-
-	model := GetOpportunityResponseModel{}
-	opportunities, err := path.service.GetOpportunitiesByTag(tagName)
+func (path *Path) getByTag(w http.ResponseWriter, tag string) {
+	opportunities, err := path.service.GetOpportunitiesByTag(tag)
 	if err != nil {
-		log.Error(err)
-		model.Message = "Internal error occurred"
-		response.WriteJson(w, model)
+		log.Error("GetOpportunitiesByTag error: ", err)
+		response.WriteJson(w, response.ErrorResponse("Internal error occurred"))
 		return
 	}
 	if opportunities == nil {
-		model.Message = "no opportunities with given tags"
-		response.WriteJson(w, model)
+		response.WriteJson(w, response.ErrorResponse("No opportunities found for given tag"))
 		return
 	}
 
-	model.Success = true
-	model.Models = opportunities
+	response.WriteJson(w, response.SuccessResponse(opportunities, ""))
+}
 
-	response.WriteJson(w, model)
+func (path *Path) GetByUUID(writer http.ResponseWriter, request *http.Request) {
+	uuidStr := chi.URLParam(request, "uuid")
+	path.getByUUID(writer, uuidStr)
 }
 
 func (path *Path) getByUUID(w http.ResponseWriter, uuidStr string) {
-	model := GetOpportunityResponseModel{}
-	postID, err := uuid.Parse(uuidStr)
+	id, err := uuid.Parse(uuidStr)
 	if err != nil {
-		model.Message = "unable to parse uuid"
-		response.WriteJson(w, model)
+		response.WriteJson(w, response.ErrorResponse("Invalid UUID format"))
 		return
 	}
 
-	post, err := path.service.GetOpportunity(postID)
+	opp, err := path.service.GetOpportunity(id)
 	if err != nil {
-		log.Error(err)
-		model.Message = "Internal error occurred"
-		response.WriteJson(w, model)
+		log.Error("GetOpportunity error: ", err)
+		response.WriteJson(w, response.ErrorResponse("Internal error occurred"))
 		return
 	}
-	if post == nil {
-		model.Message = "post doesn't exist"
-		response.WriteJson(w, model)
+	if opp == nil {
+		response.WriteJson(w, response.ErrorResponse("Opportunity not found"))
 		return
 	}
 
-	model.Success = true
-	opportunityModels := []models.OpportunityModel{*post}
-	model.Models = &opportunityModels
-
-	response.WriteJson(w, model)
+	response.WriteJson(w, response.SuccessResponse([]models.OpportunityModel{*opp}, ""))
 }
 
-func (path *Path) getFrom(w http.ResponseWriter, from string, limit string) {
-	model := struct {
-		GetOpportunityResponseModel
-		LastIndex int64 `json:"lastIndex"`
-	}{}
-
-	posts, lastSeen, err := path.service.GetOpportunitiesFrom(from, limit)
-
-	if err != nil {
-
-		if strings.HasPrefix(err.Error(), "unable limit parse") {
-			model.Message = err.Error()
-			response.WriteJson(w, model)
-		} else {
-			model.Message = "an internal error has occured"
-			response.WriteJson(w, model)
-		}
+func (path *Path) getPaginated(w http.ResponseWriter, fromStr, limitStr string) {
+	from := fromStr
+	limit, err := strconv.Atoi(limitStr)
+	if err != nil || limit <= 0 {
+		response.WriteJson(w, response.ErrorResponse("Invalid 'limit' value"))
 		return
 	}
 
-	model.Success = true
-	model.Models = posts
-	model.LastIndex = lastSeen
-	response.WriteJson(w, model)
+	opportunities, lastIndex, err := path.service.GetOpportunitiesFrom(from, limitStr)
+	if err != nil {
+		log.Error("Pagination error: ", err)
+		response.WriteJson(w, response.ErrorResponse("Failed to retrieve opportunities"))
+		return
+	}
 
+	payload := map[string]interface{}{
+		"success":   true,
+		"data":      opportunities,
+		"lastIndex": lastIndex,
+	}
+	response.WriteJson(w, payload)
 }
 
 func (path *Path) DeleteOpportunity(w http.ResponseWriter, r *http.Request) {
-	uuidStr := r.URL.Query().Get("uuid")
-
-	model := struct {
-		Success bool   `json:"success"`
-		Message string `json:"message"`
-	}{}
-
+	uuidStr := chi.URLParam(r, "uuid")
 	if uuidStr == "" {
-		model.Message = "post uuid not provided"
-		response.WriteJson(w, model)
+		response.WriteJson(w, response.ErrorResponse("UUID is required"))
 		return
 	}
 
-	postUUID, err := uuid.Parse(uuidStr)
+	id, err := uuid.Parse(uuidStr)
 	if err != nil {
-		model.Message = "unable to parse uuid"
-		response.WriteJson(w, model)
+		response.WriteJson(w, response.ErrorResponse("Invalid UUID format"))
 		return
 	}
 
-	if err := path.service.DeleteOpportunity(postUUID); err != nil {
-		log.Error(err)
-		model.Message = "internal error occurred"
-		response.WriteJson(w, model)
+	if err := path.service.DeleteOpportunity(id); err != nil {
+		log.Error("DeleteOpportunity error: ", err)
+		response.WriteJson(w, response.ErrorResponse("Internal error occurred"))
 		return
 	}
 
-	model.Success = true
-
-	response.WriteJson(w, model)
+	response.WriteJson(w, response.SuccessResponse(nil, "Opportunity deleted"))
 }
 
 func OpportunityRoute() pathapi.PathComponent {
