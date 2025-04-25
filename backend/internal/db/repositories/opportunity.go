@@ -61,6 +61,26 @@ LEFT JOIN TagsTable
 WHERE OpportunitiesTable.uuid IN (%s);
 `
 
+const GetOpportunityByFromQuery = `
+WITH limited_opportunities AS (
+  SELECT * FROM OpportunitiesTable
+  WHERE id > ?
+  ORDER BY id ASC
+  LIMIT ?
+)
+SELECT lo.*, 
+       omt.*, 
+       ott.*, 
+       tt.*
+FROM limited_opportunities lo
+LEFT JOIN OpportunityMediaTable omt 
+  ON lo.uuid = omt.opportunityUUID
+LEFT JOIN OpportunityTagsTable ott 
+  ON lo.uuid = ott.opportunityUUID
+LEFT JOIN TagsTable tt 
+  ON ott.tagID = tt.id;
+`
+
 const DeleteOpportunityQuery = "DELETE FROM OpportunitiesTable WHERE uuid = ?"
 
 // Tracks opportunities a user has liked
@@ -345,7 +365,7 @@ func (repo *OpportunityRepository) GetOpportunity(opportunityUUIDs ...*uuid.UUID
 	if err != nil {
 		return nil, err
 	}
-	opportunity, err := getOpportunity(rows)
+	opportunity, _, err := getOpportunity(rows)
 	if err != nil {
 		return nil, err
 	}
@@ -399,7 +419,23 @@ func (repo *OpportunityRepository) GetOpportunitiesByTag(tagName string) (*[]mod
 
 }
 
-func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, error) {
+func (repo *OpportunityRepository) GetOpportunitiesFrom(from int64, limit int64) (*[]models.OpportunityModel, int64, error) {
+	container := repo.Repository
+
+	columns := []mysql.Column{
+		mysql.NewIntegerColumn("from", from),
+		mysql.NewIntegerColumn("limit", limit),
+	}
+	rows, err := container.ExecuteQuery(GetOpportunityByFromQuery, columns, mysql.QueryOptions{})
+
+	if err != nil {
+		return nil, 0, err
+	}
+
+	return getOpportunity(rows)
+}
+
+func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, int64, error) {
 	type seenData struct {
 		media map[string]bool // use media URL as unique key
 		tags  map[int64]bool  // use tag ID as unique key
@@ -407,6 +443,8 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, error) {
 
 	opportunities := map[uuid.UUID]*models.OpportunityModel{}
 	seen := map[uuid.UUID]*seenData{}
+
+	var lastIDSeen int64
 
 	for rows.Next() {
 		// Main opportunity fields
@@ -435,8 +473,9 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, error) {
 			&tagOpportunityUUID, &tagID, &tagID, &tagName)
 
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
+		lastIDSeen = id
 
 		// Initialize opportunity and tracking
 		if _, exists := opportunities[opportunityUUID]; !exists {
@@ -491,7 +530,7 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, error) {
 	}
 
 	if len(opportunities) == 0 {
-		return nil, nil
+		return nil, 0, nil
 	}
 
 	opportunitiesSlice := make([]models.OpportunityModel, 0, len(opportunities))
@@ -499,7 +538,7 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, error) {
 		opportunitiesSlice = append(opportunitiesSlice, *opp)
 	}
 
-	return &opportunitiesSlice, nil
+	return &opportunitiesSlice, lastIDSeen, nil
 }
 
 func (repo *OpportunityRepository) GetOpportunityTags(opportunityUUID uuid.UUID) *[]models.TagModel {

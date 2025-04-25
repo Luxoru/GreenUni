@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
 	"net/http"
+	"strings"
 )
 
 type Path struct {
@@ -62,12 +63,16 @@ func (path *Path) GetOpportunity(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 	postUUID := query.Get("uuid")
 	tagName := query.Get("tag")
+	from := query.Get("from")
+	to := query.Get("limit")
 
 	switch {
 	case tagName != "":
 		path.getByTag(w, tagName)
 	case postUUID != "":
 		path.getByUUID(w, postUUID)
+	case from != "" && to != "":
+		path.getFrom(w, from, to)
 	default:
 		response.WriteJson(w, response.ErrorResponse("no postUUID or tagName provided"))
 	}
@@ -122,6 +127,33 @@ func (path *Path) getByUUID(w http.ResponseWriter, uuidStr string) {
 	model.Models = &opportunityModels
 
 	response.WriteJson(w, model)
+}
+
+func (path *Path) getFrom(w http.ResponseWriter, from string, limit string) {
+	model := struct {
+		GetOpportunityResponseModel
+		LastIndex int64 `json:"lastIndex"`
+	}{}
+
+	posts, lastSeen, err := path.service.GetOpportunitiesFrom(from, limit)
+
+	if err != nil {
+
+		if strings.HasPrefix(err.Error(), "unable limit parse") {
+			model.Message = err.Error()
+			response.WriteJson(w, model)
+		} else {
+			model.Message = "an internal error has occured"
+			response.WriteJson(w, model)
+		}
+		return
+	}
+
+	model.Success = true
+	model.Models = posts
+	model.LastIndex = lastSeen
+	response.WriteJson(w, model)
+
 }
 
 func (path *Path) DeleteOpportunity(w http.ResponseWriter, r *http.Request) {

@@ -3,8 +3,10 @@ package opportunity
 import (
 	"backend/internal/db/repositories"
 	"backend/internal/models"
+	"errors"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"strconv"
 )
 
 // OpportunityService provides methods for managing opportunities.
@@ -110,4 +112,23 @@ func (service *OpportunityService) DeleteOpportunity(opportunityUUID uuid.UUID) 
 
 func (service *OpportunityService) GetOpportunitiesByTag(tagName string) (*[]models.OpportunityModel, error) {
 	return service.repo.GetOpportunitiesByTag(tagName)
+}
+
+func (service *OpportunityService) GetOpportunitiesFrom(from string, limit string) (*[]models.OpportunityModel, int64, error) {
+
+	var fromInt int64
+	var limitInt int64
+	fromInt, err := strconv.ParseInt(from, 10, 64)
+
+	if err != nil {
+		return nil, 0, errors.New("unable limit parse 'from' as an integer")
+	}
+
+	limitInt, err = strconv.ParseInt(limit, 10, 64)
+
+	if err != nil {
+		return nil, 0, errors.New("unable limit parse 'limit' as an integer")
+	}
+
+	return service.repo.GetOpportunitiesFrom(fromInt, limitInt)
 }
