@@ -9,6 +9,7 @@ import (
 	"backend/routes/pathapi/v1/user"
 	"github.com/go-chi/chi"
 	chimiddle "github.com/go-chi/chi/middleware"
+	log "github.com/sirupsen/logrus"
 )
 
 // routeRegistry maps API versions to their respective routes and handlers
@@ -28,7 +29,11 @@ func Handler(r *chi.Mux, sqlRepository *mysql.Repository) {
 	for version, routes := range routeRegistry {
 		r.Route("/api/"+version, func(v chi.Router) {
 			for path, routeFunc := range routes {
-				v.Mount(path, routeFunc().SetupComponents(sqlRepository))
+				components := routeFunc().SetupComponents(sqlRepository)
+				if components == nil {
+					log.Warnf("Unable to setup path for %s", path)
+				}
+				v.Mount(path, components)
 			}
 		})
 	}
