@@ -2,8 +2,11 @@ package security
 
 import (
 	"backend/internal/models"
+	"errors"
 	"fmt"
 	"github.com/google/uuid"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v4"
@@ -12,6 +15,20 @@ import (
 // TODO: maybe move to env?
 // Private token for signing
 var secretKey = []byte("SUPERSECRETTOKEN")
+
+func ExtractUserInfoFromJWT(r *http.Request) (*models.UserInfoModel, error) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		return nil, errors.New("invalid auth header")
+	}
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+
+	claims, err := parseJWT(tokenStr)
+	if err != nil {
+		return nil, err
+	}
+	return claims, nil
+}
 
 func GenerateJWT(model *models.UserInfoModel) (string, error) {
 
@@ -31,7 +48,7 @@ func GenerateJWT(model *models.UserInfoModel) (string, error) {
 	return tokenString, nil
 }
 
-func ParseJWT(tokenStr string) (*models.UserInfoModel, error) {
+func parseJWT(tokenStr string) (*models.UserInfoModel, error) {
 
 	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
 
