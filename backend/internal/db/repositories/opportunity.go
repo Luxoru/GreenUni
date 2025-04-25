@@ -64,9 +64,16 @@ WHERE OpportunitiesTable.uuid IN (%s);
 const GetOpportunityByFromQuery = `
 WITH limited_opportunities AS (
   SELECT * FROM OpportunitiesTable
-  WHERE id > ?
+  WHERE id > ? -- First parameter: from_id
+  AND uuid NOT IN (
+    -- Filter out opportunities the user has liked
+    SELECT opportunityUUID FROM OpportunityLikesTable WHERE userUUID = ?
+    UNION
+    -- Filter out opportunities the user has disliked
+    SELECT opportunityUUID FROM OpportunityDislikesTable WHERE userUUID = ?
+  )
   ORDER BY id ASC
-  LIMIT ?
+  LIMIT ? -- Second parameter: limit
 )
 SELECT lo.*, 
        omt.*, 
@@ -97,12 +104,12 @@ CREATE TABLE IF NOT EXISTS OpportunityLikesTable (
 `
 
 const AddOpportunityLikeQuery = `
-INSERT INTO OpportunityLikesTable(userUUID, opportunityUUID) VALUES %s
+INSERT INTO OpportunityLikesTable(userUUID, opportunityUUID) VALUES (?,?)
 `
 
 const RemoveOpportunityLikesQuery = `
 DELETE FROM OpportunityLikesTable 
-WHERE userUUID = ? AND opportunityUUID IN (%s)
+WHERE userUUID = ? AND opportunityUUID IN (?)
 `
 
 const GetOpportunityLikesQuery = `
@@ -138,12 +145,12 @@ CREATE TABLE IF NOT EXISTS OpportunityDislikesTable (
 `
 
 const AddOpportunityDisLikeQuery = `
-INSERT INTO OpportunityDislikesTable(userUUID, opportunityUUID) VALUES %s
+INSERT INTO OpportunityDislikesTable(userUUID, opportunityUUID) VALUES (?,?)
 `
 
 const RemoveOpportunityDisLikesQuery = `
 DELETE FROM OpportunityDislikesTable 
-WHERE userUUID = ? AND opportunityUUID IN (%s)
+WHERE userUUID = ? AND opportunityUUID IN (?)
 `
 
 const GetOpportunityDisLikesQuery = `
@@ -421,11 +428,13 @@ func (repo *OpportunityRepository) GetOpportunitiesByTag(tagName string) (*[]mod
 
 }
 
-func (repo *OpportunityRepository) GetOpportunitiesFrom(from int64, limit int64) (*[]models.OpportunityModel, int64, error) {
+func (repo *OpportunityRepository) GetOpportunitiesFrom(from int64, limit int64, userUUID uuid.UUID) (*[]models.OpportunityModel, int64, error) {
 	container := repo.Repository
 
 	columns := []mysql.Column{
 		mysql.NewIntegerColumn("from", from),
+		mysql.NewUUIDColumn("uuid", userUUID),
+		mysql.NewUUIDColumn("uuid", userUUID),
 		mysql.NewIntegerColumn("limit", limit),
 	}
 	rows, err := container.ExecuteQuery(GetOpportunityByFromQuery, columns, mysql.QueryOptions{})

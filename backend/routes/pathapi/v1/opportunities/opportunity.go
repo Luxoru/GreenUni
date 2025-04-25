@@ -34,6 +34,10 @@ func (path *Path) SetupComponents(repo *mysql.Repository) chi.Router {
 	r.Post("/", path.CreateOpportunity)
 	r.Delete("/{uuid}", path.DeleteOpportunity)
 	r.Get("/{uuid}", path.GetByUUID)
+	r.Post("/likes/{userID}/{postID}", path.LikeOpportunity)
+	r.Delete("/likes/{userID}/{postID}", path.DeleteLikeOpportunity)
+	r.Post("/dislikes/{userID}/{postID}", path.DislikeOpportunity)
+	r.Delete("/dislikes/{userID}/{postID}", path.DeleteDislikeOpportunity)
 
 	path.router = r
 	return r
@@ -54,12 +58,12 @@ func (path *Path) GetOpportunities(w http.ResponseWriter, r *http.Request) {
 	query := r.URL.Query()
 
 	switch {
+	case query.Has("from") && query.Has("limit") && query.Has("uuid"):
+		path.getPaginated(w, query.Get("from"), query.Get("limit"), query.Get("uuid"))
 	case query.Has("tag"):
 		path.getByTag(w, query.Get("tag"))
 	case query.Has("uuid"):
 		path.getByUUID(w, query.Get("uuid"))
-	case query.Has("from") && query.Has("limit"):
-		path.getPaginated(w, query.Get("from"), query.Get("limit"))
 	default:
 		response.WriteJson(w, response.ErrorResponse("Missing query: expected ?tag=, ?uuid=, or ?from=&limit="))
 	}
@@ -106,7 +110,7 @@ func (path *Path) getByUUID(w http.ResponseWriter, uuidStr string) {
 	response.WriteJson(w, response.SuccessResponse([]models.OpportunityModel{*opp}, ""))
 }
 
-func (path *Path) getPaginated(w http.ResponseWriter, fromStr, limitStr string) {
+func (path *Path) getPaginated(w http.ResponseWriter, fromStr, limitStr, userID string) {
 	from := fromStr
 	limit, err := strconv.Atoi(limitStr)
 	if err != nil || limit <= 0 {
@@ -114,7 +118,13 @@ func (path *Path) getPaginated(w http.ResponseWriter, fromStr, limitStr string) 
 		return
 	}
 
-	opportunities, lastIndex, err := path.service.GetOpportunitiesFrom(from, limitStr)
+	userUUID, err := uuid.Parse(userID)
+	if err != nil {
+		response.WriteJson(w, response.ErrorResponse("Unable to parse uuid"))
+		return
+	}
+
+	opportunities, lastIndex, err := path.service.GetOpportunitiesFrom(from, limitStr, userUUID)
 	if err != nil {
 		log.Error("Pagination error: ", err)
 		response.WriteJson(w, response.ErrorResponse("Failed to retrieve opportunities"))
@@ -149,6 +159,33 @@ func (path *Path) DeleteOpportunity(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response.WriteJson(w, response.SuccessResponse(nil, "Opportunity deleted"))
+}
+func (path *Path) LikeOpportunity(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	postID := chi.URLParam(r, "postID")
+	res := path.service.LikeOpportunity(userID, postID)
+	response.WriteJson(w, res)
+}
+
+func (path *Path) DeleteLikeOpportunity(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	postID := chi.URLParam(r, "postID")
+	res := path.service.DeleteLikeOpportunity(userID, postID)
+	response.WriteJson(w, res)
+}
+
+func (path *Path) DislikeOpportunity(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	postID := chi.URLParam(r, "postID")
+	res := path.service.DislikeOpportunity(userID, postID)
+	response.WriteJson(w, res)
+}
+
+func (path *Path) DeleteDislikeOpportunity(w http.ResponseWriter, r *http.Request) {
+	userID := chi.URLParam(r, "userID")
+	postID := chi.URLParam(r, "postID")
+	res := path.service.DeleteDislikeOpportunity(userID, postID)
+	response.WriteJson(w, res)
 }
 
 func OpportunityRoute() pathapi.PathComponent {

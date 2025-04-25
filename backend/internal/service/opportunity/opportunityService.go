@@ -115,7 +115,7 @@ func (service *OpportunityService) GetOpportunitiesByTag(tagName string) (*[]mod
 	return service.repo.GetOpportunitiesByTag(tagName)
 }
 
-func (service *OpportunityService) GetOpportunitiesFrom(from string, limit string) (*[]models.OpportunityModel, int64, error) {
+func (service *OpportunityService) GetOpportunitiesFrom(from string, limit string, userUUID uuid.UUID) (*[]models.OpportunityModel, int64, error) {
 
 	var fromInt int64
 	var limitInt int64
@@ -131,7 +131,7 @@ func (service *OpportunityService) GetOpportunitiesFrom(from string, limit strin
 		return nil, 0, errors.New("unable limit parse 'limit' as an integer")
 	}
 
-	return service.repo.GetOpportunitiesFrom(fromInt, limitInt)
+	return service.repo.GetOpportunitiesFrom(fromInt, limitInt, userUUID)
 }
 
 func (service *OpportunityService) LikeOpportunity(userID, postID string) *response.Response {
