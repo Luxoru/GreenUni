@@ -16,6 +16,7 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import config from '../../utils/config';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);

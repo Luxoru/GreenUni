@@ -8,14 +8,13 @@ import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { CustomTabBar } from '@/components/CustomTabBar';
 import * as SecureStore from 'expo-secure-store';
-
+import config from '../../utils/config';
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const router = useRouter();
   const [isLoggedIn, setIsLoggedIn] = useState(null);
   const [user, setUser] = useState(null);
 
-  // Check if user is logged in
   useEffect(() => {
     async function checkAuth() {
       try {
@@ -40,16 +39,14 @@ export default function TabLayout() {
     checkAuth();
   }, []);
 
-  // Redirect to login if not logged in
   useEffect(() => {
     if (isLoggedIn === false) {
       router.replace('/auth/signup');
     }
   }, [isLoggedIn]);
 
-  // Optional loading state while checking auth
   if (isLoggedIn === null) {
-    return null; // or splash screen
+    return null;
   }
 
   return (
