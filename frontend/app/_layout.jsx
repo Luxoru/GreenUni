@@ -4,7 +4,7 @@ import { Stack, useRouter } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage'; // <-- add this import
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
@@ -20,23 +20,24 @@ export default function RootLayout() {
   });
 
   // Global runtime flag
-let hasClearedStorage = false;
+  let hasClearedStorage = false;
 
-useEffect(() => {
-  const prepare = async () => {
-    if (loaded && !hasClearedStorage && __DEV__) {
-      hasClearedStorage = true;
-      await AsyncStorage.clear();
-      console.log('✅ AsyncStorage cleared on reload');
-    }
+  useEffect(() => {
+    const prepare = async () => {
+      if (loaded && !hasClearedStorage && __DEV__) {
+        hasClearedStorage = true;
+        await AsyncStorage.clear();
+        console.log('✅ AsyncStorage cleared on reload');
+      }
 
-    if (loaded) {
-      await SplashScreen.hideAsync();
-    }
-  };
+      if (loaded) {
+        await SplashScreen.hideAsync();
+      }
+    };
 
-  prepare();
-}, [loaded]);
+    prepare();
+  }, [loaded]);
+
   if (!loaded) {
     return null;
   }
@@ -44,9 +45,11 @@ useEffect(() => {
   return (
     <AuthProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen name="+not-found" />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
+          <Stack.Screen name="(tabs)" />
+          <Stack.Screen name="auth" />
+          <Stack.Screen name="+not-found" options={{ presentation: 'modal' }} />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

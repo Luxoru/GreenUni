@@ -124,7 +124,7 @@ const VolunteerPage = () => {
       try {
         setIsLoading(true);
 
-        const userStr = await SecureStore.getItemAsync('user');
+      const userStr = await SecureStore.getItemAsync('user');
 
       if (!userStr) {
         console.warn("No user found in SecureStore.");
@@ -135,9 +135,10 @@ const VolunteerPage = () => {
 
       const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
 
-      console.log("Fetching from " + from);
 
       if (!response.data.data) return [];
+
+      console.log(response.data.data.map(item => item.media[item.media.length - 1].URL));
 
       setPage(response.data.lastIndex);
 

@@ -1,23 +1,48 @@
 import { Tabs, useRouter } from 'expo-router';
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 
-import { useAuth } from '@/app/auth/AuthContext';
-import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
+import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { CustomTabBar } from '@/components/CustomTabBar';
+import * as SecureStore from 'expo-secure-store';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
-  const { isLoggedIn } = useAuth();
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [user, setUser] = useState(null);
+
+  // Check if user is logged in
+  useEffect(() => {
+    async function checkAuth() {
+      try {
+        const userStr = await SecureStore.getItemAsync('user');
+        
+        if (!userStr) {
+          console.log("No user found - redirecting to login");
+          setIsLoggedIn(false);
+          return;
+        }
+        
+        const userData = JSON.parse(userStr);
+        setUser(userData);
+        setIsLoggedIn(true);
+        console.log("User authenticated:", userData?.role);
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        setIsLoggedIn(false);
+      }
+    }
+    
+    checkAuth();
+  }, []);
 
   // Redirect to login if not logged in
   useEffect(() => {
     if (isLoggedIn === false) {
-      console.log("Login")
       router.replace('/auth/signup');
     }
   }, [isLoggedIn]);
@@ -30,30 +55,32 @@ export default function TabLayout() {
   return (
     <Tabs
       initialRouteName="explore"
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            position: 'absolute',
-          },
-          default: {},
-        }),
       }}>
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="explore"
         options={{
           title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="recruiterExplore"
+        options={{
+          title: 'Recruiter',
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Profile',
+        }}
+      />
+      <Tabs.Screen
+        name="recruiterProfile"
+        options={{
+          title: 'Profile',
         }}
       />
     </Tabs>
