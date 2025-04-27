@@ -87,53 +87,6 @@ CREATE TABLE IF NOT EXISTS UserTagsLiked(
 	FOREIGN KEY (tagID) REFERENCES TagsTable(id) ON DELETE CASCADE)
 `
 
-//User tag preferences things
-
-const InsertUserTagsLikedQuery = `
-INSERT INTO UserTagsLiked(uuid, tagID) VALUES %s
-`
-
-const GetUserTagsLikedQuery = `
-SELECT ul.uuid, ut.username, tg.tagID, tg.tagName FROM UserTagsLiked ul
-INNER JOIN TagsTable tg
-	ON tg.id = ul.tagID
-INNER JOIN UserTable ut
-	ON ut.uuid = ul.uuid
-WHERE ul.uuid = ?
-`
-
-const RemoveUserTagsLikedQuery = `
-DELETE FROM UserTagsLiked
-WHERE uuid = ? AND tagID IN (%s)
-`
-
-const CreateUserTagsDisLikedTableQuery = `
-CREATE TABLE IF NOT EXISTS UserTagsDisLiked(
-	uuid VARCHAR(36), 
-	tagID int,
-	PRIMARY KEY (uuid, tagID),
-	FOREIGN KEY (uuid) REFERENCES UserTable(uuid) ON DELETE CASCADE,
-	FOREIGN KEY (tagID) REFERENCES TagsTable(id) ON DELETE CASCADE)
-`
-
-const InsertUserTagsDisLikedQuery = `
-INSERT INTO UserTagsDisLiked(uuid, tagID) VALUES %s
-`
-
-const GetUserTagsDisLikedQuery = `
-SELECT ul.uuid, ut.username, tg.tagID, tg.tagName FROM UserTagsDisLiked ul
-INNER JOIN TagsTable tg
-	ON tg.id = ul.tagID
-INNER JOIN UserTable ut
-	ON ut.uuid = ul.uuid
-WHERE ul.uuid = ?
-`
-
-const RemoveUserTagsDisLikedQuery = `
-DELETE FROM UserTagsDisLiked
-WHERE uuid = ? AND tagID IN (%s)
-`
-
 // NewUserRepository initializes a new UserRepository instance
 func NewUserRepository(db *mysql.Repository) (*UserRepository, error) {
 	ur := &UserRepository{}
@@ -148,7 +101,7 @@ func NewUserRepository(db *mysql.Repository) (*UserRepository, error) {
 
 // CreateTablesQuery returns a list of SQL queries needed to create necessary tables for user management
 func (_ *UserRepository) CreateTablesQuery() *[]string {
-	return &[]string{CreateUserPassTableQuery, CreateUserTagsLikedTableQuery, CreateUserTagsDisLikedTableQuery, CreateRecruiterTable, CreatePointsTableQuery}
+	return &[]string{CreateUserPassTableQuery, CreateUserTagsLikedTableQuery, CreateStudentTagsDisLikedTableQuery, CreateRecruiterTable, CreatePointsTableQuery}
 }
 
 // CreateIndexesQuery returns a list of SQL queries needed to create necessary indexes for user management
@@ -173,6 +126,19 @@ func (repo *UserRepository) AddUser(userModel *models.UserModel, options mysql.I
 	if err != nil {
 		return err
 	}
+	if userModel.Role != models.Student {
+		return nil
+	}
+
+	columns = []mysql.Column{
+		mysql.NewUUIDColumn("uuid", userModel.UUID),
+	}
+	_, err = container.ExecuteInsert(CreateStudentInfoQuery, columns, mysql.InsertOptions{})
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
