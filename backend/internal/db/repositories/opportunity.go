@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS OpportunitiesTable (
     postedByUUID VARCHAR(36) NOT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+	approved BOOL DEFAULT FALSE,
     FOREIGN KEY (postedByUUID) REFERENCES UserTable(uuid) ON DELETE CASCADE
 );
 `
@@ -49,6 +50,17 @@ INSERT INTO OpportunitiesTable (
 ) VALUES (?, ?, ?, ?, ?, ?, ?);
 `
 
+const UpdateOpportunityQuery = `
+UPDATE OpportunitiesTable
+SET title = ?, description = ?, points = ?, location = ?, opportunityType = ?
+WHERE uuid = ?`
+
+const UpdateApproveOpporunityQuery = `
+UPDATE OpportunitiesTable 
+SET approved = ? 
+WHERE uuid = ?
+`
+
 // TODO Extract things i need don't want all
 const GetOpportunityByIDQuery = `
 SELECT * FROM OpportunitiesTable
@@ -59,6 +71,17 @@ LEFT JOIN OpportunityTagsTable
 LEFT JOIN TagsTable 
   ON OpportunityTagsTable.tagID = TagsTable.id
 WHERE OpportunitiesTable.uuid IN (%s);
+`
+
+const GetOpportunityByAuthorIDQuery = `
+SELECT * FROM OpportunitiesTable
+LEFT JOIN OpportunityMediaTable 
+  ON OpportunitiesTable.uuid = OpportunityMediaTable.opportunityUUID
+LEFT JOIN OpportunityTagsTable 
+  ON OpportunitiesTable.uuid = OpportunityTagsTable.opportunityUUID
+LEFT JOIN TagsTable 
+  ON OpportunityTagsTable.tagID = TagsTable.id
+WHERE OpportunitiesTable.postedByUUID IN (%s);
 `
 
 const GetOpportunityByFromQuery = `
@@ -112,7 +135,7 @@ DELETE FROM OpportunityLikesTable
 WHERE userUUID = ? AND opportunityUUID IN (?)
 `
 
-const GetOpportunityLikesQuery = `
+const GetOpportunityLikesByUserIDQuery = `
 SELECT 
 	olt.opportunityUUID,ot.title, ot.description, ot.location, 
 	ot.opportunityType, ot.postedByUUID, omt.mediaURL, omt.mediaType,
@@ -127,6 +150,21 @@ LEFT JOIN OpportunityTagsTable ott
 LEFT JOIN TagsTable tt
   ON ott.tagID = tt.id
 WHERE OpportunityLikesTable.userUUID = ?
+`
+
+const GetOpportunityLikesByOpportunityIDQuery = `
+SELECT 
+    olt.userUUID, ut.username, ut.email, st.description, st.profile, ot.id
+FROM OpportunityLikesTable olt
+INNER JOIN UserTable ut
+    ON ut.uuid = olt.userUUID
+INNER JOIN StudentInfoTable st
+    ON st.uuid = ut.uuid
+INNER JOIN OpportunitiesTable ot
+    ON ot.uuid = olt.opportunityUUID
+WHERE ot.id > ?
+  AND olt.opportunityUUID = ?
+LIMIT ?;
 `
 
 const CreateOpportunityLikedIndex = "CREATE INDEX idx_like_user ON OpportunityLikesTable(userUUID);"
@@ -181,7 +219,7 @@ CREATE TABLE IF NOT EXISTS TagsTable (
 
 const CreateTagIndex = "CREATE INDEX idx_tag_name ON TagsTable(tagName);"
 
-const GetTagByName = "SELECT * FROM TagsTable WHERE tagName = ?"
+const GetTagByName = "SELECT * FROM TagsTable WHERE tagName = %s"
 const CreateTagQuery = `INSERT INTO TagsTable (tagName) VALUES (?)`
 
 const GetTagByID = "SELECT tagName from TagsTable WHERE id = ?"
@@ -202,6 +240,9 @@ const CreateOpportunityTagsQuery = "INSERT INTO OpportunityTagsTable (opportunit
 const GetOpportunityTagsQuery = `
 SELECT tagID FROM OpportunityTagsTable WHERE opportunityUUID = ?
 `
+const DeleteOpportunityTagsQuery = `
+DELETE FROM OpportunityTagsTable WHERE opportunityUUID = ?
+`
 
 // For tag filtering
 const GetOpportunitiesByTagQuery = "SELECT opportunityUUID FROM OpportunityTagsTable WHERE tagID = ?"
@@ -219,6 +260,9 @@ CREATE TABLE IF NOT EXISTS OpportunityMediaTable (
 
 const InsertOpportunityMediaQuery = "INSERT IGNORE INTO OpportunityMediaTable (opportunityUUID, mediaURL, mediaType) VALUES (?,?,?)"
 const GetOpportunityMediaQuery = "SELECT mediaURL, mediaType FROM OpportunityMediaTable WHERE opportunityUUID = ?"
+const DeleteOpportunityMediaQuery = `
+DELETE FROM OpportunityMediaTable WHERE opportunityUUID = ?
+`
 
 type OpportunityRepository struct {
 	*BaseRepository
@@ -248,6 +292,24 @@ func (_ *OpportunityRepository) CreateTablesQuery() *[]string {
 // CreateIndexesQuery returns a list of SQL queries needed to create necessary indexes for user management
 func (_ *OpportunityRepository) CreateIndexesQuery() *[]string {
 	return &[]string{CreateOpportunityPostedByIndex, CreateOpportunityLikedIndex, CreateOpportunityDislikedIndex, CreateTagIndex}
+}
+
+func (repo *OpportunityRepository) UpdateOpportunityStatus(opportunityUUID uuid.UUID, status bool) error {
+	container := repo.Repository
+
+	columns := []mysql.Column{
+		mysql.NewBoolColumn("approved", status),
+		mysql.NewUUIDColumn("uuid", opportunityUUID),
+	}
+
+	_, err := container.ExecuteQuery(UpdateApproveOpporunityQuery, columns, mysql.QueryOptions{})
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+
 }
 
 func (repo *OpportunityRepository) CreateOpportunity(model *models.OpportunityModel) error {
@@ -292,6 +354,61 @@ func (repo *OpportunityRepository) CreateOpportunity(model *models.OpportunityMo
 
 }
 
+func (repo *OpportunityRepository) UpdateOpportunity(model *models.OpportunityModel) error {
+	container := repo.Repository
+
+	uuidColumn := mysql.NewUUIDColumn("uuid", model.UUID)
+
+	columns := []mysql.Column{
+		mysql.NewVarcharColumn("title", model.Title),
+		mysql.NewVarcharColumn("description", model.Description),
+		mysql.NewIntegerColumn("points", model.Points),
+		mysql.NewVarcharColumn("location", model.Location),
+		mysql.NewVarcharColumn("opportunityType", model.OpportunityType),
+		uuidColumn,
+	}
+
+	transaction, err := container.StartTransaction()
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	defer transaction.Rollback()
+	_, err = container.AddExecuteTransaction(transaction, UpdateOpportunityQuery, columns)
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	//Delete old tags
+
+	_, err = container.AddExecuteTransaction(transaction, DeleteOpportunityTagsQuery, []mysql.Column{uuidColumn})
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	_, err = container.AddExecuteTransaction(transaction, DeleteOpportunityMediaQuery, []mysql.Column{uuidColumn})
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	//Handle new shit
+	err = handlePostTags(transaction, model, container)
+	if err != nil {
+		return err
+	}
+
+	err = handlePostMedia(transaction, model, container)
+	if err != nil {
+		return err
+	}
+
+	return container.CommitTransaction(transaction)
+}
+
 func handlePostMedia(transaction *sql.Tx, model *models.OpportunityModel, container *mysql.Repository) error {
 	images := *model.Media
 
@@ -330,7 +447,7 @@ func handlePostTags(transaction *sql.Tx, postModel *models.OpportunityModel, con
 
 		tagName := tag.TagName
 
-		tag, err := getTagByName(tagName, container, true)
+		tag, err := GetTagModelByName(tagName, container, true)
 		if err != nil {
 			return err
 		}
@@ -385,11 +502,45 @@ func (repo *OpportunityRepository) GetOpportunity(opportunityUUIDs ...*uuid.UUID
 	return opportunity, nil
 }
 
+func (repo *OpportunityRepository) GetOpportunityByAuthor(authorUUIDs ...*uuid.UUID) (*[]models.OpportunityModel, error) {
+
+	if len(authorUUIDs) == 0 {
+		return nil, nil
+	}
+
+	container := repo.Repository
+
+	var columns []mysql.Column
+
+	placeholders := strings.Repeat("?,", len(authorUUIDs))
+	placeholders = placeholders[:len(placeholders)-1]
+
+	query := fmt.Sprintf(GetOpportunityByAuthorIDQuery, placeholders)
+
+	for _, uID := range authorUUIDs {
+		columns = append(columns, mysql.NewUUIDColumn("uuid", *uID))
+	}
+
+	rows, err := container.ExecuteQuery(query, columns, mysql.QueryOptions{})
+	if err != nil {
+		return nil, err
+	}
+	opportunity, _, err := getOpportunity(rows)
+	if err != nil {
+		return nil, err
+	}
+	if opportunity == nil {
+		return nil, nil
+	}
+
+	return opportunity, nil
+}
+
 func (repo *OpportunityRepository) GetOpportunitiesByTag(tagName string) (*[]models.OpportunityModel, error) {
 
 	container := repo.Repository
 
-	tag, err := getTagByName(tagName, container, false)
+	tag, err := GetTagModelByName(tagName, container, false)
 	if err != nil {
 		return nil, err
 	}
@@ -499,6 +650,7 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, int64, error) {
 		var points int64
 		var postedByUUID uuid.UUID
 		var createdAt, updatedAt time.Time
+		var approved bool
 
 		// Media
 		var mediaID sql.Null[int64]
@@ -513,7 +665,7 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, int64, error) {
 
 		err := rows.Scan(&id, &opportunityUUID, &title, &description, &points,
 			&location, &opportunityType, &postedByUUID,
-			&createdAt, &updatedAt,
+			&createdAt, &updatedAt, &approved,
 			&mediaID, &mediaOpportunityUUID, &mediaURL, &mediaType,
 			&tagOpportunityUUID, &tagID, &tagID, &tagName)
 
@@ -534,6 +686,7 @@ func getOpportunity(rows *sql.Rows) (*[]models.OpportunityModel, int64, error) {
 				PostedByUUID:    postedByUUID,
 				CreatedAt:       createdAt,
 				UpdatedAt:       updatedAt,
+				Approved:        approved,
 				Tags:            &[]models.TagModel{},
 				Media:           &[]models.MediaModel{},
 			}
@@ -713,12 +866,12 @@ func (repo *OpportunityRepository) GetOpportunityMedia(opportunityUUID uuid.UUID
 
 }
 
-func getTagByName(tagName string, container *mysql.Repository, createIfNotExist bool) (*models.TagModel, error) {
+func GetTagModelByName(tagName string, container *mysql.Repository, createIfNotExist bool) (*models.TagModel, error) {
 	columns := []mysql.Column{
 		mysql.NewVarcharColumn("tagName", tagName),
 	}
-
-	rows, err := container.ExecuteQuery(GetTagByName, columns, mysql.QueryOptions{})
+	query := fmt.Sprintf(GetTagByName, "?")
+	rows, err := container.ExecuteQuery(query, columns, mysql.QueryOptions{})
 
 	if err != nil {
 		return nil, err
@@ -771,4 +924,53 @@ func getTagByName(tagName string, container *mysql.Repository, createIfNotExist 
 	}
 
 	return &model, nil
+}
+
+func (repo *OpportunityRepository) GetOpportunityByLikes(opportunityUUID uuid.UUID, from int64, limit int64) (*[]*models.StudentInfoModel, int64, error) {
+	container := repo.Repository
+
+	columns := []mysql.Column{
+		mysql.NewIntegerColumn("id", from),
+		mysql.NewUUIDColumn("uuid", opportunityUUID),
+		mysql.NewIntegerColumn("limit", limit),
+	}
+
+	rows, err := container.ExecuteQuery(GetOpportunityLikesByOpportunityIDQuery, columns, mysql.QueryOptions{})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	var students []*models.StudentInfoModel
+	var lastRow int64
+	for rows.Next() {
+		var userUUID uuid.UUID
+		var username string
+		var email string
+		var description sql.NullString
+		var profile sql.NullString
+		var rowID int64
+
+		err = rows.Scan(&userUUID, &username, &email, &description, &profile, &rowID)
+		if err != nil {
+			return nil, 0, err
+		}
+
+		students = append(students, &models.StudentInfoModel{
+			StudentID:    userUUID,
+			StudentName:  username,
+			StudentEmail: email,
+			Description:  description.String,
+			ProfilePic:   profile.String,
+		})
+
+		lastRow = rowID
+
+	}
+
+	if len(students) == 0 {
+		return nil, 0, nil
+	}
+
+	return &students, lastRow, nil
+
 }
