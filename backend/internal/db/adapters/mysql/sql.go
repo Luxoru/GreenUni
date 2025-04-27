@@ -250,6 +250,40 @@ func (c *UUIDColumn) GetType() string {
 	return "VARCHAR(36)"
 }
 
+// BoolColumn represents a UUID stored as BOOL
+type BoolColumn struct {
+	*BaseColumn
+}
+
+// NewBoolColumn creates a new BoolColumn with a value
+func NewBoolColumn(name string, value bool) *BoolColumn {
+	return &BoolColumn{
+		BaseColumn: &BaseColumn{
+			name:     name,
+			value:    value,
+			length:   1,
+			nullable: false,
+		},
+	}
+}
+
+// NewBoolColumnForTable creates a BoolColumn for table definition
+func NewBoolColumnForTable(name string, nullable bool, length int) *BoolColumn {
+	return &BoolColumn{
+		BaseColumn: &BaseColumn{
+			name:     name,
+			value:    nil,
+			length:   length,
+			nullable: nullable,
+		},
+	}
+}
+
+// GetType returns the MySQL column type
+func (c *BoolColumn) GetType() string {
+	return "BOOL"
+}
+
 // VarcharColumn represents a VARCHAR column in a MySQL table
 type VarcharColumn struct {
 	*BaseColumn
