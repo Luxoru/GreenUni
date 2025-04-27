@@ -3,6 +3,7 @@ package opportunities
 import (
 	"backend/internal/db/adapters/mysql"
 	"backend/internal/db/repositories"
+	"backend/internal/middleware"
 	"backend/internal/models"
 	"backend/internal/service/opportunity"
 	response "backend/internal/utils/http"
@@ -32,12 +33,16 @@ func (path *Path) SetupComponents(repo *mysql.Repository) chi.Router {
 
 	r.Get("/", path.GetOpportunities)
 	r.Post("/", path.CreateOpportunity)
+	r.Put("/", path.UpdateOpportunity)
 	r.Delete("/{uuid}", path.DeleteOpportunity)
 	r.Get("/{uuid}", path.GetByUUID)
 	r.Post("/likes/{userID}/{postID}", path.LikeOpportunity)
+	r.Get("/likes/{postID}", path.GetOpportunityLikes)
 	r.Delete("/likes/{userID}/{postID}", path.DeleteLikeOpportunity)
 	r.Post("/dislikes/{userID}/{postID}", path.DislikeOpportunity)
 	r.Delete("/dislikes/{userID}/{postID}", path.DeleteDislikeOpportunity)
+	r.With(middleware.CheckIfAdminUser).Put("/status", path.UpdateOpportunityStatus)
+	r.Get("/author/{authorID}", path.GetOpportunitiesByAuthor)
 
 	path.router = r
 	return r
@@ -52,6 +57,16 @@ func (path *Path) CreateOpportunity(w http.ResponseWriter, r *http.Request) {
 
 	status := path.service.CreateOpportunity(req)
 	response.WriteJson(w, status)
+}
+
+func (path *Path) UpdateOpportunity(writer http.ResponseWriter, request *http.Request) {
+	var req models.CreateOpportunityRequest
+	if err := json.NewDecoder(request.Body).Decode(&req); err != nil {
+		response.WriteJson(writer, response.ErrorResponse("Invalid request body"))
+		return
+	}
+	res := path.service.UpdateOpportunity(req)
+	response.WriteJson(writer, res)
 }
 
 func (path *Path) GetOpportunities(w http.ResponseWriter, r *http.Request) {
@@ -186,6 +201,36 @@ func (path *Path) DeleteDislikeOpportunity(w http.ResponseWriter, r *http.Reques
 	postID := chi.URLParam(r, "postID")
 	res := path.service.DeleteDislikeOpportunity(userID, postID)
 	response.WriteJson(w, res)
+}
+
+func (path *Path) GetOpportunityLikes(writer http.ResponseWriter, request *http.Request) {
+	postID := chi.URLParam(request, "postID")
+	query := request.URL.Query()
+	from := query.Get("from")
+	limit := query.Get("limit")
+	res := path.service.GetOpportunityByLikes(postID, from, limit) //TODO rename
+
+	response.WriteJson(writer, res)
+
+}
+
+func (path *Path) UpdateOpportunityStatus(writer http.ResponseWriter, request *http.Request) {
+	query := request.URL.Query()
+
+	opportunityUUID := query.Get("uuid")
+	status := query.Get("status")
+
+	res := path.service.UpdateStatus(opportunityUUID, status)
+
+	response.WriteJson(writer, res)
+}
+
+func (path *Path) GetOpportunitiesByAuthor(writer http.ResponseWriter, request *http.Request) {
+	userID := chi.URLParam(request, "authorID")
+
+	res := path.service.GetOpportunitiesByAuthor(userID)
+
+	response.WriteJson(writer, res)
 }
 
 func OpportunityRoute() pathapi.PathComponent {
