@@ -3,7 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/auth/AuthContext';
 import * as SecureStore from 'expo-secure-store';
-
+import config from '../../utils/config';
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -12,7 +12,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://192.168.1.58:8080/api/v1/auth/login', {
+      const response = await fetch(`${config.apiURL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,7 +58,7 @@ export default function Login() {
 
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="Username"
         value={email}
         onChangeText={setEmail}
         keyboardType="email-address"

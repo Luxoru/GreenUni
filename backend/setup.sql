@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS UserTable(
     role ENUM ('Student', 'Recruiter', 'Admin')
 );
 
-INSERT INTO UserTable(uuid, username, email, hashed_pass, salt, role) VALUES ('f52a683e-1896-489b-8c78-d8f03b735e7a', 'admin', 'admin@gmail.com', '$2a$10$8uzZdQR66ZEoWa.iPF7n7ektlX2E.0LG8Fo.QFGz2cNXQ6NZ.L8WK', 'SUkgJGkyqbnHDJV3pwWiTg', 'Admin')
+INSERT INTO UserTable(uuid, username, email, hashed_pass, salt, role) VALUES ('f52a683e-1896-489b-8c78-d8f03b735e7a', 'admin', 'admin@gmail.com', '$2a$10$8uzZdQR66ZEoWa.iPF7n7ektlX2E.0LG8Fo.QFGz2cNXQ6NZ.L8WK', 'SUkgJGkyqbnHDJV3pwWiTg', 'Admin');
 
 CREATE TABLE IF NOT EXISTS TagsTable (
      id INT AUTO_INCREMENT PRIMARY KEY,
