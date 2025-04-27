@@ -198,7 +198,7 @@ export default function SignUp() {
         {/* Opportunity form for recruiters */}
         {selectedRole === 'Recruiter' && (
           <View style={styles.opportunityForm}>
-            <Text style={styles.formHeading}>Create Your First Opportunity</Text>
+            <Text style={styles.formHeading}>Create Your Opportunity</Text>
             
             <TextInput
               style={styles.input}
