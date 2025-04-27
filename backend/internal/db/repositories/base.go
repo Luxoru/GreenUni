@@ -2,7 +2,6 @@ package repositories
 
 import (
 	"backend/internal/db/adapters/mysql"
-	log "github.com/sirupsen/logrus"
 	"strings"
 )
 
@@ -35,7 +34,6 @@ func InitRepository(repo SQLRepository, container *mysql.Repository) (*BaseRepos
 	for _, query := range createTableQueries {
 		rows, err := repository.ExecuteQuery(query, make([]mysql.Column, 0), mysql.QueryOptions{})
 		if err != nil {
-			log.Error(err)
 			return nil, err
 		}
 		rows.Close()
