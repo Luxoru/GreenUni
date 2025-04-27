@@ -17,6 +17,7 @@ type OpportunityModel struct {
 	PostedByUUID    uuid.UUID `json:"postedByUUID"`
 	CreatedAt       time.Time `json:"createdAt"`
 	UpdatedAt       time.Time `json:"updatedAt"`
+	Approved        bool      `json:"approved"`
 
 	Tags  *[]TagModel   `json:"tags"`
 	Media *[]MediaModel `json:"media"`
@@ -85,6 +86,7 @@ type CreateOpportunityStatus struct {
 }
 
 type CreateOpportunityRequest struct {
+	UUID        string   `json:"uuid"`
 	Title       string   `json:"title"`
 	Description string   `json:"description"`
 	Location    string   `json:"location"`
