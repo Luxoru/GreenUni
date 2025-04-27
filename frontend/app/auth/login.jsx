@@ -1,20 +1,14 @@
 import React, { useState } from 'react';
-import { Modal,View, Text, TextInput, Button, StyleSheet } from 'react-native';
+import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/auth/AuthContext';
-import { Alert } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-
-
 
 export default function Login() {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
-  const [showErrorModal, setShowErrorModal] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
 
   const handleLogin = async () => {
     try {
@@ -30,27 +24,33 @@ export default function Login() {
       });
   
       if (!response.ok) {
-        const errorText = await response.message();
+        const errorText = await response.text();
         throw new Error(`HTTP error! Status: ${response.status}, Message: ${errorText}`);
       }
   
       const data = await response.json();
   
       if (!data.success) {
-        Alert.alert('Login Failed', data.message.trim());
+        Alert.alert('Login Failed', data.message || 'Login failed');
         return;
       }
-      console.log(data.info.user)
-      await login(data.info.token)
+      
+      await login(data.info.token);
       await SecureStore.setItemAsync('user', JSON.stringify(data.info.user));
-  
-      router.push('/explore');
+      
+      console.log('Login successful with role:', data.info.user.role);
+      
+      // Navigate to the appropriate initial tab based on role
+      if (data.info.user.role === 'Recruiter') {
+        router.replace('/recruiterExplore');
+      } else {
+        router.replace('/explore');
+      }
     } catch (error) {
       console.error('Login error:', error);
       Alert.alert('Login Failed', 'Unable to login. Please check your credentials or try again later.');
     }
   };
-  
   
   return (
     <View style={styles.container}>
@@ -61,6 +61,8 @@ export default function Login() {
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        keyboardType="email-address"
+        autoCapitalize="none"
       />
 
       <TextInput
@@ -72,6 +74,14 @@ export default function Login() {
       />
 
       <Button title="Login" onPress={handleLogin} />
+      
+      <View style={styles.registerLink}>
+        <Text>Don't have an account? </Text>
+        <Button 
+          title="Sign Up" 
+          onPress={() => router.push('/auth/signup')}
+        />
+      </View>
     </View>
   );
 }
@@ -81,18 +91,29 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     padding: 16,
+    backgroundColor: '#f5f5f5',
   },
   heading: {
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
+    color: '#333',
   },
   input: {
-    height: 40,
-    borderColor: '#ccc',
+    height: 50,
+    borderColor: '#ddd',
     borderWidth: 1,
+    borderRadius: 8,
     marginBottom: 16,
-    paddingLeft: 8,
+    paddingLeft: 12,
+    backgroundColor: '#fff',
+    fontSize: 16,
+  },
+  registerLink: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
   },
 });
