@@ -6,6 +6,7 @@ import (
 	"backend/routes/pathapi/v1/auth"
 	"backend/routes/pathapi/v1/opportunities"
 	"backend/routes/pathapi/v1/root"
+	"backend/routes/pathapi/v1/student"
 	"backend/routes/pathapi/v1/user"
 	"github.com/go-chi/chi"
 	chimiddle "github.com/go-chi/chi/middleware"
@@ -20,6 +21,7 @@ var routeRegistry = map[string]map[string]func() pathapi.PathComponent{
 		"/auth/signup":   auth.SignupRoute,
 		"/auth/login":    auth.LoginRoute,
 		"/opportunities": opportunities.OpportunityRoute,
+		"/student":       student.Route,
 	},
 }
 
