@@ -69,8 +69,8 @@ func (sqlDatabase *Container) Connect(config Configurations) error {
 	}
 
 	sqlDatabase.database = database
-	sqlDatabase.pool = concurrency.NewThreadPool(500, 100)
-	sqlDatabase.pool.Start()
+	//sqlDatabase.pool = concurrency.NewThreadPool(500, 100)
+	//sqlDatabase.pool.Start()
 
 	return nil
 }
