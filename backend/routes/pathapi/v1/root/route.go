@@ -2,6 +2,7 @@ package root
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
 	"backend/routes/pathapi"
 	"encoding/json"
 	"github.com/go-chi/chi"
@@ -17,7 +18,7 @@ type MessyData struct {
 	Name string
 }
 
-func (path *Path) SetupComponents(_ *mysql.Repository) chi.Router {
+func (path *Path) SetupComponents(_ *mysql.Repository, _ *neo4j.Repository) chi.Router {
 	r := chi.NewRouter()
 	r.Get("/", GetDefault)
 	path.router = r
