@@ -13,7 +13,7 @@ import { useRouter } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-
+import config from '../../utils/config';
 export default function MatchesScreen() {
   const [loading, setLoading] = useState(true);
   const [matches, setMatches] = useState([]);
@@ -65,7 +65,7 @@ export default function MatchesScreen() {
 
       // Step 1: Fetch recruiter's opportunity
       console.log("Fetching recruiter's opportunity:", recruiterId);
-      const opportunityResponse = await fetch(`http://192.168.1.58:8080/api/v1/opportunities/author/${recruiterId}`, {
+      const opportunityResponse = await fetch(`${config.apiURL}/api/v1/opportunities/author/${recruiterId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -94,7 +94,7 @@ export default function MatchesScreen() {
       console.log("Found opportunity ID:", opportunityId);
 
       // Step 3: Fetch likes for this opportunity
-      const likesResponse = await fetch(`http://192.168.1.58:8080/api/v1/opportunities/likes/${opportunityId}?from=0&limit=50`, {
+      const likesResponse = await fetch(`${config.apiURL}/api/v1/opportunities/likes/${opportunityId}?from=0&limit=50`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -136,7 +136,7 @@ export default function MatchesScreen() {
       }
 
       // API call to get matches
-      const response = await fetch(`http://192.168.1.58:8080/api/v1/match/${studentId}`, {
+      const response = await fetch(`${config.apiURL}/api/v1/match/${studentId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -157,7 +157,7 @@ export default function MatchesScreen() {
           data.data.map(async (recruiter) => {
             try {
               // Fetch recruiter's opportunity to get their media
-              const oppResponse = await fetch(`http://192.168.1.58:8080/api/v1/opportunities/author/${recruiter.uuid}`, {
+              const oppResponse = await fetch(`${config.apiURL}/api/v1/opportunities/author/${recruiter.uuid}`, {
                 method: 'GET',
                 headers: {
                   'Authorization': `Bearer ${token}`,

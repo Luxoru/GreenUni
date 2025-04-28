@@ -16,6 +16,7 @@ import * as SecureStore from 'expo-secure-store';
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
 const CARD_HEIGHT = height * 0.7;
+const config = require('../../utils/config');
 
 // Memoized card component for better performance from what Im aware
 const GreenCard = memo(({ item, onLike, onDislike, expanded, setExpanded }) => {
@@ -133,7 +134,7 @@ const VolunteerPage = () => {
 
       const user = JSON.parse(userStr);
 
-      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
+      const response = await axios.get(`${config.apiURL}/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
 
 
       if (!response.data.data) return [];
@@ -195,7 +196,7 @@ const VolunteerPage = () => {
 
     const user = JSON.parse(userStr);
   
-    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/likes/${user.uuid}/${id}`);
+    const response = await axios.post(`${config.apiURL}/api/v1/opportunities/likes/${user.uuid}/${id}`);
 
     console.log(response.data.success)
 
@@ -219,7 +220,7 @@ const VolunteerPage = () => {
 
     const user = JSON.parse(userStr);
   
-    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/dislikes/${user.uuid}/${id}`);
+    const response = await axios.post(`${config.apiURL}/api/v1/opportunities/dislikes/${user.uuid}/${id}`);
 
     if(response.data.success == false){
       Alert.alert('Disliking failed', `${response.data.message}`);
