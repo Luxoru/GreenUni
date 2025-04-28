@@ -2,6 +2,7 @@ package auth
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
 	"backend/internal/db/repositories"
 	"backend/internal/service/auth"
 	response "backend/internal/utils/http"
@@ -24,7 +25,7 @@ type SignupRequest struct {
 	Role     string `json:"role"`
 }
 
-func (path *SignupPath) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
+func (path *SignupPath) SetupComponents(sqlRepository *mysql.Repository, _ *neo4j.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
 
