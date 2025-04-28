@@ -132,7 +132,7 @@ const RecruiterPage = () => {
         
         // Fetch the recruiter's opportunities
         const response = await axios.get(
-          `http://192.168.1.58:8080/api/v1/opportunities/likes/${user.uuid}`,
+          `http://192.168.1.58:8080/api/v1/opportunities/author/${user.uuid}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -151,6 +151,8 @@ const RecruiterPage = () => {
         } else if (Array.isArray(response.data) && response.data.length > 0) {
           opportunityData = response.data[0];
         }
+        console.log("ZIGGER")
+        console.log(response.data.data);
         
         if (opportunityData) {
           const uuid = opportunityData.uuid;
@@ -190,14 +192,40 @@ const RecruiterPage = () => {
       const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities/likes/${opportunityId}?from=${fromIndex}&limit=5`);
       console.log("Likes response:", response.data);
       
-      if (!response.data.data || !response.data.data.likes) return [];
+      if (!response.data.data || !response.data.data.likes) {
+        setInitialLoading(false);
+        return [];
+      }
       
       setPage(response.data.data.lastIndex);
       setInitialLoading(false);
       
-      return response.data.data.likes;
+      // Extract the actual student data from the likes array
+      return response.data.data.likes.map(likeData => {
+        // Log the structure to understand what's in each like object
+        console.log("Like data structure:", JSON.stringify(likeData));
+        
+        // If likeData is already a student object, return it directly
+        if (likeData.studentID || likeData.uuid) {
+          return likeData;
+        }
+        
+        // If likeData contains a student property, return that
+        if (likeData.student) {
+          return likeData.student;
+        }
+        
+        // If likeData is an array, take the first element (assuming it's the student)
+        if (Array.isArray(likeData) && likeData.length > 0) {
+          return likeData[0];
+        }
+        
+        // Default fallback - return as is
+        return likeData;
+      });
     } catch (error) {
       console.error("Error fetching students:", error);
+      setInitialLoading(false);
       return [];
     } finally {
       setIsLoading(false);
@@ -286,8 +314,9 @@ const RecruiterPage = () => {
   if (!opportunityUUID) {
     return (
       <View style={styles.container}>
-        <Text style={styles.errorText}>No opportunity found</Text>
-        <Text style={styles.subText}>Create an opportunity in your profile</Text>
+        <ActivityIndicator size="large" color="#FF4949" />
+        <Text style={styles.loadingText}>No more students!</Text>
+        <Text style={styles.loadingText}>Check back later!</Text>
       </View>
     );
   }

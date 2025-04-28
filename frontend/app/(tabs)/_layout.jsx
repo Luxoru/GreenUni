@@ -66,6 +66,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="matches"
+        options={{
+          title: 'Matches',
+        }}
+      />
+      <Tabs.Screen
         name="recruiterExplore"
         options={{
           title: 'Recruiter',

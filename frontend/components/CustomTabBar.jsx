@@ -64,14 +64,14 @@ export function CustomTabBar({ state, descriptors, navigation }) {
   let visibleRoutes = [];
   
   if (user?.role === 'Recruiter') {
-    // For Recruiters, show recruiterExplore and recruiterProfile tabs
+    // For Recruiters, show recruiterExplore, matches, and recruiterProfile tabs
     visibleRoutes = state.routes.filter(route => 
-      ['recruiterExplore', 'recruiterProfile'].includes(route.name)
+      ['recruiterExplore', 'matches', 'recruiterProfile'].includes(route.name)
     );
   } else {
-    // For students, show explore and profile
+    // For students, show explore, matches, and profile
     visibleRoutes = state.routes.filter(route => 
-      ['explore', 'profile'].includes(route.name)
+      ['explore', 'matches', 'profile'].includes(route.name)
     );
   }
 
@@ -79,7 +79,7 @@ export function CustomTabBar({ state, descriptors, navigation }) {
   useEffect(() => {
     if (user?.role === 'Recruiter' && 
         state.routeNames.includes('recruiterExplore') && 
-        !['recruiterExplore', 'recruiterProfile'].includes(state.routes[state.index].name)) {
+        !['recruiterExplore', 'matches', 'recruiterProfile'].includes(state.routes[state.index].name)) {
       router.replace('/recruiterExplore');
     }
   }, [user, state.index]);
@@ -113,6 +113,8 @@ export function CustomTabBar({ state, descriptors, navigation }) {
               return <IconSymbol size={28} name="paperplane.fill" color={isFocused ? tintColor : '#666'} />;
             case 'recruiterExplore':
               return <IconSymbol size={28} name="paperplane.fill" color={isFocused ? tintColor : '#666'} />;
+            case 'matches':
+              return <Ionicons size={28} name="heart" color={isFocused ? tintColor : '#666'} />;
             case 'profile':
               return <Ionicons size={28} name="person" color={isFocused ? tintColor : '#666'} />;
             case 'recruiterProfile':

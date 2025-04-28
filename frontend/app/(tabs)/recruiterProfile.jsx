@@ -419,6 +419,22 @@ export default function RecruiterProfile() {
       <View style={styles.formContainer}>
         <Text style={styles.sectionTitle}>Your Opportunity</Text>
         <Text style={styles.sectionSubtitle}>Edit your opportunity details below</Text>
+        
+        {opportunity && (
+          <View style={[
+            styles.statusContainer, 
+            opportunity.approved ? styles.approvedStatus : styles.pendingStatus
+          ]}>
+            <Ionicons 
+              name={opportunity.approved ? "checkmark-circle" : "time-outline"} 
+              size={20} 
+              color={opportunity.approved ? "#2ecc71" : "#f39c12"}
+            />
+            <Text style={styles.statusText}>
+              {opportunity.approved ? "Approved" : "Pending approval"}
+            </Text>
+          </View>
+        )}
 
         <Text style={styles.label}>Title *</Text>
         <TextInput
@@ -729,5 +745,24 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  statusContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  approvedStatus: {
+    backgroundColor: 'rgba(46, 204, 113, 0.2)',
+  },
+  pendingStatus: {
+    backgroundColor: 'rgba(243, 156, 18, 0.2)',
+  },
+  statusText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: '500',
   },
 }); 
