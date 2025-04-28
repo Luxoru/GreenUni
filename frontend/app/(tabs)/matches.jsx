@@ -152,11 +152,9 @@ export default function MatchesScreen() {
       console.log("Student matches data:", data);
       
       if (data.success && data.data) {
-        // For each recruiter, fetch their opportunity to get a media image
         const recruitersWithMedia = await Promise.all(
           data.data.map(async (recruiter) => {
             try {
-              // Fetch recruiter's opportunity to get their media
               const oppResponse = await fetch(`${config.apiURL}/api/v1/opportunities/author/${recruiter.uuid}`, {
                 method: 'GET',
                 headers: {
@@ -166,16 +164,16 @@ export default function MatchesScreen() {
               });
               
               if (!oppResponse.ok) {
-                return recruiter; // Return original recruiter if no opportunity found
+                return recruiter; 
               }
               
               const oppData = await oppResponse.json();
               
-              // Check if opportunity has media and use the first one as recruiter image
+              
               if (oppData.data && oppData.data.length > 0 && 
                   oppData.data[0].media && oppData.data[0].media.length > 0) {
                 
-                // Find the first media item with a URL
+                
                 const mediaItem = oppData.data[0].media.find(item => item.URL);
                 if (mediaItem) {
                   return {
@@ -187,15 +185,14 @@ export default function MatchesScreen() {
               return recruiter;
             } catch (error) {
               console.error("Error fetching recruiter opportunity:", error);
-              return recruiter; // Return original recruiter if error
+              return recruiter;
             }
           })
         );
         
         setMatches(recruitersWithMedia);
       } else {
-        // No matches or error
-        setMatches([]);
+        setMatches([]); //Resets matches to 0
       }
     } catch (error) {
       console.error("Error fetching student matches:", error);
@@ -205,7 +202,7 @@ export default function MatchesScreen() {
     }
   };
 
-  // Handle refreshing the matches list
+
   const handleRefresh = () => {
     if (user) {
       if (user.role === 'Recruiter') {
@@ -216,9 +213,9 @@ export default function MatchesScreen() {
     }
   };
 
-  // Render each match item - different display for students vs recruiters
+
   const renderMatchItem = ({ item }) => {
-    // For recruiters, we're showing students who liked their opportunity
+
     if (user?.role === 'Recruiter') {
       return (
         <TouchableOpacity 
@@ -258,7 +255,6 @@ export default function MatchesScreen() {
         </TouchableOpacity>
       );
     } 
-    // For students, we're showing recruiters who liked them
     else {
       return (
         <TouchableOpacity 
@@ -295,15 +291,14 @@ export default function MatchesScreen() {
     }
   };
 
-  // Empty state component
   const EmptyMatches = () => (
     <View style={styles.emptyContainer}>
       <Ionicons name="heart-outline" size={80} color="#CCCCCC" />
       <Text style={styles.emptyTitle}>No Matches Yet</Text>
       <Text style={styles.emptyText}>
         {user?.role === 'Recruiter' 
-          ? "No students have liked your opportunity yet. Check back later!" 
-          : "When you like opportunities and recruiters like you back, they'll appear here."}
+          ? "No students have liked your opportunity yet. Check back in a bit lad!" 
+          : "When you like opportunities and recruiters like you back, they'll appear here! Don't worry, you'll get they'll come flying"}
       </Text>
       <TouchableOpacity 
         style={styles.exploreButton}

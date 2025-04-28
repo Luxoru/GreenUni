@@ -4,11 +4,9 @@ import (
 	"backend/internal/db"
 	"backend/internal/utils/concurrency"
 	"errors"
-	"fmt"
 	"github.com/neo4j/neo4j-go-driver/v4/neo4j"
 )
 
-// Container holds the MySQL connection and thread pool. Implements Database
 type Container struct {
 	database neo4j.Driver
 	pool     *concurrency.ThreadPool
@@ -30,7 +28,6 @@ func (neoDatabase *Container) Name() string {
 	return "neo4j"
 }
 
-// Connect initializes the MySQL connection and thread pool.
 func (neoDatabase *Container) Connect(config Configurations) error {
 	uri := config.Authentication.URI
 	username := config.Authentication.AuthConfig.Username
@@ -48,31 +45,18 @@ func (neoDatabase *Container) Connect(config Configurations) error {
 	return nil
 }
 
-// GetThreadPool returns the internal thread pool.
 func (neoDatabase *Container) GetThreadPool() *concurrency.ThreadPool {
 	return neoDatabase.pool
 }
 
-// Close closes the database connection
 func (neoDatabase *Container) Close() error {
 	return neoDatabase.database.Close()
 }
 
-// Repository represents a MySQL repository backed by a Container.
 type Repository struct {
 	Database *Container
 }
 
-// NewRepository creates a new Neo4j repository instance
-func NewRepository(driver neo4j.Driver) *Repository {
-	return &Repository{
-		Database: &Container{
-			database: driver,
-		},
-	}
-}
-
-// CreateNode creates a new node in the database
 func (repo *Repository) CreateNode(node *Node) (*Node, error) {
 	session := repo.createSession()
 	defer session.Close()
@@ -96,7 +80,6 @@ func (repo *Repository) CreateNode(node *Node) (*Node, error) {
 	return result[0], nil
 }
 
-// UpdateNode updates an existing node in the database
 func (repo *Repository) UpdateNode(oldNode *Node, newNode *Node) (*Node, error) {
 	session := repo.createSession()
 	defer session.Close()
@@ -124,7 +107,6 @@ func (repo *Repository) UpdateNode(oldNode *Node, newNode *Node) (*Node, error) 
 	return result[0], nil
 }
 
-// GetNode retrieves a node from the database
 func (repo *Repository) GetNode(node *Node) (*Node, error) {
 	session := repo.createSession()
 	defer session.Close()
@@ -152,7 +134,6 @@ func (repo *Repository) GetNode(node *Node) (*Node, error) {
 	return result[0], nil
 }
 
-// GetNodeRelations retrieves nodes related to the given node by the specified relation
 func (repo *Repository) GetNodeRelations(node *Node, relation string) ([]*Node, error) {
 	session := repo.createSession()
 	defer session.Close()
@@ -165,12 +146,9 @@ func (repo *Repository) GetNodeRelations(node *Node, relation string) ([]*Node, 
 		WithReturn(true).
 		Build()
 
-	fmt.Println(query)
-
 	return repo.executeQuery(session, query)
 }
 
-// CreateRelation creates a relationship between two nodes
 func (repo *Repository) CreateRelation(nodeA *Node, nodeB *Node, relation string, isBiDirectional bool) error {
 	session := repo.createSession()
 	defer session.Close()
@@ -189,13 +167,10 @@ func (repo *Repository) CreateRelation(nodeA *Node, nodeB *Node, relation string
 		WithReturn(true).
 		Build()
 
-	fmt.Println(query)
-
 	_, err := repo.executeQuery(session, query)
 	return err
 }
 
-// RemoveRelation removes a relationship between two nodes
 func (repo *Repository) RemoveRelation(nodeA *Node, nodeB *Node, relation string, isBiDirectional bool) error {
 	session := repo.createSession()
 	defer session.Close()
@@ -218,7 +193,6 @@ func (repo *Repository) RemoveRelation(nodeA *Node, nodeB *Node, relation string
 	return err
 }
 
-// executeQuery executes a Cypher query and returns the resulting nodes
 func (repo *Repository) executeQuery(session neo4j.Session, query string) ([]*Node, error) {
 	result, err := session.WriteTransaction(func(tx neo4j.Transaction) (interface{}, error) {
 		records, err := tx.Run(query, nil)
@@ -231,16 +205,15 @@ func (repo *Repository) executeQuery(session neo4j.Session, query string) ([]*No
 			record := records.Record()
 			node := NewNode()
 
-			// Process each key in the record
+			// Process each key in the record bascially a set of data
 			for i, _ := range record.Keys {
 				value := record.Values[i]
 				if neoNode, ok := value.(neo4j.Node); ok {
-					// Set the label from neo4j node
+
 					for _, label := range neoNode.Labels {
 						node.SetLabel(label)
 					}
 
-					// Add properties from neo4j node
 					for k, v := range neoNode.Props {
 						node.AddProperty(k, v)
 					}
@@ -264,7 +237,7 @@ func (repo *Repository) executeQuery(session neo4j.Session, query string) ([]*No
 	return nil, errors.New("failed to parse query result")
 }
 
-// createSession creates a new Neo4j session
+// CreateSession iirc needs to be done for each query?
 func (repo *Repository) createSession() neo4j.Session {
 	return repo.Database.database.NewSession(neo4j.SessionConfig{
 		DatabaseName: "neo4j",
@@ -272,7 +245,6 @@ func (repo *Repository) createSession() neo4j.Session {
 	})
 }
 
-// Add method to NodeQueryBuilder to support MatchRelationship
 func (nqb *NodeQueryBuilder) MatchRelationship(relation string) *NodeQueryBuilder {
 	nqb.relationshipMatch = relation
 	return nqb

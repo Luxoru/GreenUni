@@ -121,7 +121,6 @@ func (repo *UserRepository) AddUser(userModel *models.UserModel, options mysql.I
 // GetUserByID retrieves a user by UUID from the database
 func (repo *UserRepository) GetUserByID(userUUID ...uuid.UUID) (*[]models.RawUserRow, error) {
 	container := repo.Repository
-	fmt.Println(userUUID)
 	placeholders := strings.Repeat("?,", len(userUUID))
 	placeholders = placeholders[:len(placeholders)-1]
 

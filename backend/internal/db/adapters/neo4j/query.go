@@ -8,7 +8,6 @@ import (
 	"time"
 )
 
-// NeoQueryBuilder builds Neo4j queries
 type NeoQueryBuilder struct {
 	queryType       string
 	nodes           []*NodeQueryBuilder
@@ -17,7 +16,6 @@ type NeoQueryBuilder struct {
 	relationBuilder strings.Builder
 }
 
-// NewNeoQueryBuilder creates a new NeoQueryBuilder
 func NewNeoQueryBuilder(queryType string) *NeoQueryBuilder {
 	return &NeoQueryBuilder{
 		queryType: queryType,
@@ -25,31 +23,26 @@ func NewNeoQueryBuilder(queryType string) *NeoQueryBuilder {
 	}
 }
 
-// WithNode adds a node to the query
 func (nqb *NeoQueryBuilder) WithNode(node *Node) *NodeQueryBuilder {
 	nodeQueryBuilder := NewNodeQueryBuilder(node, nqb)
 	nqb.nodes = append(nqb.nodes, nodeQueryBuilder)
 	return nodeQueryBuilder
 }
 
-// WithReturn sets whether the query should return values
 func (nqb *NeoQueryBuilder) WithReturn(withReturn bool) *NeoQueryBuilder {
 	nqb.withReturn = withReturn
 	return nqb
 }
 
-// WithUpdateQuery creates an update query builder
 func (nqb *NeoQueryBuilder) WithUpdateQuery() *UpdateQueryBuilder {
 	nqb.updateQuery = NewUpdateQueryBuilder(nqb)
 	return nqb.updateQuery
 }
 
-// Relation creates a relation query builder
 func (nqb *NeoQueryBuilder) Relation(a rune, b rune, relation string, isBiDirectional bool) *RelationQueryBuilder {
 	return NewRelationQueryBuilder(a, b, relation, isBiDirectional, nqb, &nqb.relationBuilder)
 }
 
-// Build constructs the full Cypher query
 func (nqb *NeoQueryBuilder) Build() string {
 	var builder strings.Builder
 	returnChars := make([]string, 0)
@@ -59,9 +52,7 @@ func (nqb *NeoQueryBuilder) Build() string {
 		builder.WriteString(" (")
 
 		returnChars = append(returnChars, string(node.GetNodeTag()))
-
 		builder.WriteString(fmt.Sprintf("%c:%s", node.GetNodeTag(), strings.ToLower(node.GetNode().GetLabel())))
-
 		if node.IsWithProperties() {
 			builder.WriteString("{")
 			properties := node.GetNode().GetProperties()
@@ -77,7 +68,6 @@ func (nqb *NeoQueryBuilder) Build() string {
 		}
 
 		builder.WriteString(")")
-
 		if node.GetRelationshipMatch() != "" {
 			returnChar := strings.ToLower(stringutils.GenerateRandomString(1))
 			returnChars = append(returnChars, returnChar)
@@ -86,7 +76,6 @@ func (nqb *NeoQueryBuilder) Build() string {
 		builder.WriteString("  ")
 	}
 
-	// Remove trailing spaces
 	queryString := builder.String()
 	queryString = strings.TrimSuffix(queryString, "  ")
 
@@ -108,11 +97,9 @@ func (nqb *NeoQueryBuilder) Build() string {
 			}
 		}
 	}
-
 	return queryString
 }
 
-// NodeQueryBuilder builds node queries
 type NodeQueryBuilder struct {
 	node              *Node
 	nodeTag           rune
@@ -121,7 +108,6 @@ type NodeQueryBuilder struct {
 	queryBuilder      *NeoQueryBuilder
 }
 
-// NewNodeQueryBuilder creates a new NodeQueryBuilder
 func NewNodeQueryBuilder(node *Node, queryBuilder *NeoQueryBuilder) *NodeQueryBuilder {
 	rand.Seed(time.Now().UnixNano())
 	return &NodeQueryBuilder{
@@ -132,50 +118,41 @@ func NewNodeQueryBuilder(node *Node, queryBuilder *NeoQueryBuilder) *NodeQueryBu
 	}
 }
 
-// WithProperties sets whether to include properties
 func (nqb *NodeQueryBuilder) WithProperties(withProperties bool) *NodeQueryBuilder {
 	nqb.withProperties = withProperties
 	return nqb
 }
 
-// WithTag sets the node tag
 func (nqb *NodeQueryBuilder) WithTag(tag rune) *NodeQueryBuilder {
 	nqb.nodeTag = tag
 	return nqb
 }
 
-// RelatesTo sets the relationship match
 func (nqb *NodeQueryBuilder) RelatesTo(relation string) *NeoQueryBuilder {
 	nqb.relationshipMatch = relation
 	return nqb.queryBuilder
 }
 
-// Build returns the query builder
 func (nqb *NodeQueryBuilder) Build() *NeoQueryBuilder {
 	return nqb.queryBuilder
 }
 
-// GetNode returns the node
 func (nqb *NodeQueryBuilder) GetNode() *Node {
 	return nqb.node
 }
 
-// GetNodeTag returns the node tag
 func (nqb *NodeQueryBuilder) GetNodeTag() rune {
 	return nqb.nodeTag
 }
 
-// IsWithProperties returns whether to include properties
 func (nqb *NodeQueryBuilder) IsWithProperties() bool {
 	return nqb.withProperties
 }
 
-// GetRelationshipMatch returns the relationship match
 func (nqb *NodeQueryBuilder) GetRelationshipMatch() string {
 	return nqb.relationshipMatch
 }
 
-// RelationQueryBuilder builds relationship queries
 type RelationQueryBuilder struct {
 	a               rune
 	b               rune
@@ -185,7 +162,6 @@ type RelationQueryBuilder struct {
 	relationBuilder *strings.Builder
 }
 
-// NewRelationQueryBuilder creates a new RelationQueryBuilder
 func NewRelationQueryBuilder(a, b rune, relation string, isBiDirectional bool, builder *NeoQueryBuilder, relationBuilder *strings.Builder) *RelationQueryBuilder {
 	return &RelationQueryBuilder{
 		a:               a,
@@ -197,7 +173,6 @@ func NewRelationQueryBuilder(a, b rune, relation string, isBiDirectional bool, b
 	}
 }
 
-// Create adds a create relationship query
 func (rqb *RelationQueryBuilder) Create() *NeoQueryBuilder {
 	rqb.relationBuilder.WriteString(fmt.Sprintf(" MERGE (%c)-[:%s]->(%c)", rqb.a, rqb.relation, rqb.b))
 	if rqb.isBiDirectional {
@@ -206,7 +181,6 @@ func (rqb *RelationQueryBuilder) Create() *NeoQueryBuilder {
 	return rqb.builder
 }
 
-// Remove adds a remove relationship query
 func (rqb *RelationQueryBuilder) Remove() *NeoQueryBuilder {
 	rqb.relationBuilder.WriteString(fmt.Sprintf(" MATCH (%c)-[rel:%s]->(%c) DELETE rel", rqb.a, rqb.relation, rqb.b))
 	if rqb.isBiDirectional {
@@ -216,20 +190,17 @@ func (rqb *RelationQueryBuilder) Remove() *NeoQueryBuilder {
 	return rqb.builder
 }
 
-// UpdateQueryBuilder builds update queries
 type UpdateQueryBuilder struct {
 	queryBuilder *NeoQueryBuilder
 	builder      strings.Builder
 }
 
-// NewUpdateQueryBuilder creates a new UpdateQueryBuilder
 func NewUpdateQueryBuilder(queryBuilder *NeoQueryBuilder) *UpdateQueryBuilder {
 	return &UpdateQueryBuilder{
 		queryBuilder: queryBuilder,
 	}
 }
 
-// Update adds an update query
 func (uqb *UpdateQueryBuilder) Update(oldChar rune, newNode *Node) *UpdateQueryBuilder {
 	for key, value := range newNode.GetProperties() {
 		uqb.builder.WriteString(" SET ")
@@ -238,12 +209,10 @@ func (uqb *UpdateQueryBuilder) Update(oldChar rune, newNode *Node) *UpdateQueryB
 	return uqb
 }
 
-// GetQuery returns the update query string
 func (uqb *UpdateQueryBuilder) GetQuery() string {
 	return uqb.builder.String()
 }
 
-// Build returns the query builder
 func (uqb *UpdateQueryBuilder) Build() *NeoQueryBuilder {
 	return uqb.queryBuilder
 }

@@ -11,13 +11,13 @@ export default function SignUp() {
   const [selectedRole, setSelectedRole] = useState('Student');
   const router = useRouter();
 
-  // Opportunity fields for recruiters
+
   const [opportunityTitle, setOpportunityTitle] = useState('');
   const [opportunityDescription, setOpportunityDescription] = useState('');
   const [opportunityLocation, setOpportunityLocation] = useState('');
   const [opportunityType, setOpportunityType] = useState('volunteer');
   
-  // Media handling - multiple URLs and types
+  // Media handling forsx multiple URLs and types
   const [mediaItems, setMediaItems] = useState([{ url: '', type: 'Image' }]);
   
   const [opportunityTags, setOpportunityTags] = useState('');
@@ -26,12 +26,11 @@ export default function SignUp() {
   const opportunityTypes = ['volunteer', 'internship', 'job', 'event'];
   const mediaTypes = ['Image', 'Video'];
 
-  // Add new media item
+
   const addMediaItem = () => {
     setMediaItems([...mediaItems, { url: '', type: 'Image' }]);
   };
 
-  // Remove media item
   const removeMediaItem = (index) => {
     if (mediaItems.length > 1) {
       const updatedItems = [...mediaItems];
@@ -40,7 +39,7 @@ export default function SignUp() {
     }
   };
 
-  // Update media item
+  
   const updateMediaItem = (index, field, value) => {
     const updatedItems = [...mediaItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
@@ -49,20 +48,20 @@ export default function SignUp() {
 
   const handleSignUp = async () => {
     try {
-      // Validate opportunity fields for recruiters
+     
       if (selectedRole === 'Recruiter') {
         if (!opportunityTitle || !opportunityDescription || !opportunityLocation) {
           throw new Error('Please fill in all required opportunity fields');
         }
         
-        // Validate media URLs
+        
         const invalidMedia = mediaItems.find(item => !item.url);
         if (invalidMedia) {
           throw new Error('Please fill in all media URLs or remove empty fields');
         }
       }
 
-      // Step 1: Create user account
+      
       const signupResponse = await fetch(`${config.apiURL}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,9 +84,9 @@ export default function SignUp() {
 
       console.log('Signup success:', signupData);
 
-      // Step 2: If user is a recruiter, login to get UUID and create an opportunity
+      
       if (selectedRole === 'Recruiter') {
-        // Login to get token and UUID
+        
         const loginResponse = await fetch(`${config.apiURL}/api/v1/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -104,7 +103,7 @@ export default function SignUp() {
 
         console.log('Login success:', loginData);
         
-        // Get UUID from login response
+       
         const userUUID = loginData.info.user.uuid;
         const token = loginData.info.token;
         
@@ -112,12 +111,11 @@ export default function SignUp() {
           throw new Error('Could not get user UUID, but account was created');
         }
 
-        // Format data for opportunity creation
+        
         const tagsArray = opportunityTags.split(',').map(tag => tag.trim()).filter(tag => tag);
         const mediaURLArray = mediaItems.map(item => item.url);
         const mediaTypeArray = mediaItems.map(item => item.type);
-        
-        // Step 3: Create opportunity
+
         const opportunityResponse = await fetch(`${config.apiURL}/api/v1/opportunities`, {
           method: 'POST',
           headers: { 
@@ -133,7 +131,7 @@ export default function SignUp() {
             mediaType: mediaTypeArray,
             mediaURL: mediaURLArray,
             tags: tagsArray,
-            points: Math.floor(Math.random() * 500) + 100 // Random points between 100-600
+            points: Math.floor(Math.random() * 500) + 100 // Random points between 100-600 temp maybe change gamnbling??
           }),
         });
 
@@ -145,7 +143,6 @@ export default function SignUp() {
         }
       }
 
-      // Navigate to login page regardless of outcome
       router.replace('/auth/login');
     } catch (error) {
       console.error('Signup error:', error);

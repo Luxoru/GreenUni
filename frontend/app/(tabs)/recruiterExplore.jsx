@@ -16,9 +16,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
-const CARD_HEIGHT = height * 0.75; // Taller by default
+const CARD_HEIGHT = height * 0.75; 
 
-// Memoized Student Card
+// Memoized Student Card bettter efficiency liek that
 const StudentCard = memo(({ student, onLike, onDislike, expanded, setExpanded }) => {
   const animatedHeight = useRef(new Animated.Value(CARD_HEIGHT)).current;
 
@@ -111,7 +111,6 @@ const RecruiterPage = () => {
   useEffect(() => {
     const fetchOpportunityUUID = async () => {
       try {
-        // Get user data
         const userStr = await SecureStore.getItemAsync('user');
         if (!userStr) {
           console.warn("No user found in SecureStore.");
@@ -122,7 +121,7 @@ const RecruiterPage = () => {
         const user = JSON.parse(userStr);
         console.log("Fetching opportunities for user:", user.uuid);
         
-        // Get token
+       
         const token = await AsyncStorage.getItem('token');
         if (!token) {
           console.warn("No token found in AsyncStorage.");
@@ -130,9 +129,9 @@ const RecruiterPage = () => {
           return;
         }
         
-        // Fetch the recruiter's opportunities
+        //Why are u using axios bruh
         const response = await axios.get(
-          `http://192.168.1.58:8080/api/v1/opportunities/author/${user.uuid}`,
+          `${config.apiURL}/api/v1/opportunities/author/${user.uuid}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -141,7 +140,6 @@ const RecruiterPage = () => {
           }
         );
         
-        // Handle different response formats
         let opportunityData = null;
         
         if (response.data.success && response.data.data && response.data.data.length > 0) {
@@ -151,16 +149,12 @@ const RecruiterPage = () => {
         } else if (Array.isArray(response.data) && response.data.length > 0) {
           opportunityData = response.data[0];
         }
-        console.log("ZIGGER")
-        console.log(response.data.data);
-        
         if (opportunityData) {
           const uuid = opportunityData.uuid;
           console.log("Found recruiter opportunity UUID:", uuid);
           setOpportunityUUID(uuid);
-          // After getting the UUID, fetch students
           fetchStudents(0, uuid).then((newStudents) => {
-            setStudents(newStudents);
+            setStudents(newStudents); // DONT DELETE THIS. IF DELETED NOT SHOWN
           });
         } else {
           console.warn("No opportunities found for this recruiter");
@@ -179,10 +173,9 @@ const RecruiterPage = () => {
     try {
       setIsLoading(true);
       
-      // Ensure 'from' is a valid number
+
       const fromIndex = from !== undefined ? from : 0;
-      
-      // Use the provided UUID or the state value
+
       const opportunityId = uuid || opportunityUUID;
       
       if (!opportunityId) {
@@ -190,9 +183,9 @@ const RecruiterPage = () => {
         return [];
       }
       
-      console.log("Fetching students for opportunity:", opportunityId, "from page", fromIndex);
-      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities/likes/${opportunityId}?from=${fromIndex}&limit=5`);
-      console.log("Likes response:", response.data);
+
+      const response = await axios.get(`${config.apiURL}/api/v1/opportunities/likes/${opportunityId}?from=${fromIndex}&limit=5`);
+
       
       if (!response.data.data || !response.data.data.likes) {
         setInitialLoading(false);
@@ -202,27 +195,26 @@ const RecruiterPage = () => {
       setPage(response.data.data.lastIndex);
       setInitialLoading(false);
       
-      // Extract the actual student data from the likes array
+
       return response.data.data.likes.map(likeData => {
-        // Log the structure to understand what's in each like object
+
         console.log("Like data structure:", JSON.stringify(likeData));
-        
-        // If likeData is already a student object, return it directly
+
         if (likeData.studentID || likeData.uuid) {
           return likeData;
         }
         
-        // If likeData contains a student property, return that
+
         if (likeData.student) {
           return likeData.student;
         }
         
-        // If likeData is an array, take the first element (assuming it's the student)
+
         if (Array.isArray(likeData) && likeData.length > 0) {
           return likeData[0];
         }
         
-        // Default fallback - return as is
+
         return likeData;
       });
     } catch (error) {
@@ -236,7 +228,7 @@ const RecruiterPage = () => {
   
 
   useEffect(() => {
-    // Students are now fetched after getting the opportunity UUID
+
     if (opportunityUUID && students.length === 0 && !isLoading) {
       fetchStudents(0).then((newStudents) => {
         setStudents(newStudents);
@@ -272,10 +264,8 @@ const RecruiterPage = () => {
     if (!recruiterStr) return;
 
     const recruiter = JSON.parse(recruiterStr);
-    console.log("Recruiter:", recruiter.uuid);
-    console.log("Student:", studentId);
-    const response = await axios.post(`http://192.168.1.58:8080/api/v1/match?uuid1=${recruiter.uuid}&uuid2=${studentId}`);
-    console.log("Response:", response.data);
+
+    const response = await axios.post(`${config.apiURL}/api/v1/match?uuid1=${recruiter.uuid}&uuid2=${studentId}`);
     if (!response.data.success) {
       Alert.alert('Matching failed', response.data.message);
     }
@@ -285,7 +275,7 @@ const RecruiterPage = () => {
 
   const handleDislike = async (studentId) => {
     console.log(`Disliked student ${studentId}`);
-
+    //No endpoint rn idk what to do
     moveToNextCard();
   };
 

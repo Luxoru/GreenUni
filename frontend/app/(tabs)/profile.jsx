@@ -29,11 +29,11 @@ export default function ProfilePage() {
   const [studentEmail, setStudentEmail] = useState('');
   const router = useRouter();
   
-  // Create refs for both TextInputs to maintain focus
+  // Using refs for both TextInputs to maintain focus  -- TODO: Make this a hook
   const favTagInputRef = useRef(null);
   const dislikeTagInputRef = useRef(null);
 
-  // Fetch user profile data on component mount
+  // Fetch user profile data on component mount -- Dont delete pls whatever u do :)
   useEffect(() => {
     fetchProfileData();
   }, []);
@@ -58,8 +58,7 @@ export default function ProfilePage() {
         return;
       }
 
-      // Replace with your actual API endpoint
-      const response = await fetch('http://192.168.1.58:8080/api/v1/student/me', {
+      const response = await fetch(`${config.apiURL}/api/v1/student/me`, {
         method: "GET",
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -70,7 +69,6 @@ export default function ProfilePage() {
       
       if (result.success) {
         const { data } = result;
-        // Set all the profile data from API response
         setStudentID(data.studentID);
         setStudentEmail(data.studentEmail || '');
         setDescription(data.description || '');
@@ -89,7 +87,7 @@ export default function ProfilePage() {
 
   const pickImage = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, //FIX THE DEPRECATION SHAF
       allowsEditing: true,
       aspect: [1, 1],
       quality: 0.5,
@@ -107,7 +105,7 @@ export default function ProfilePage() {
     if (newFavTag.trim() !== '' && !favoriteTags.includes(newFavTag.trim())) {
       setFavoriteTags([...favoriteTags, newFavTag.trim()]);
       setNewFavTag('');
-      // Keep focus on the input after adding tag
+
       if (favTagInputRef.current) {
         favTagInputRef.current.focus();
       }
@@ -118,7 +116,7 @@ export default function ProfilePage() {
     if (newDislikeTag.trim() !== '' && !dislikedTags.includes(newDislikeTag.trim())) {
       setDislikedTags([...dislikedTags, newDislikeTag.trim()]);
       setNewDislikeTag('');
-      // Keep focus on the input after adding tag
+
       if (dislikeTagInputRef.current) {
         dislikeTagInputRef.current.focus();
       }
@@ -142,15 +140,13 @@ export default function ProfilePage() {
       const profileData = {
         studentID,
         studentEmail,
-        // Making sure all other fields can be empty if needed
         description: description || '',
         profilePic: profilePic || '',
         tagsLiked: favoriteTags || [],
         tagsDisliked: dislikedTags || [],
       };
       
-      // Replace with your actual API endpoint
-      const response = await fetch('http://192.168.1.58:8080/api/v1/student/me', {
+      const response = await fetch(`${config.apiURL}/api/v1/student/me`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -177,7 +173,6 @@ export default function ProfilePage() {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('token');
-      // Navigate to login screen or perform any other logout actions
       console.log('Logged out successfully');
       router.replace("/auth/login")
     } catch (error) {
@@ -194,6 +189,7 @@ export default function ProfilePage() {
     );
   }
 
+  //Specific SAVs for keyboard avoidance
   return (
     <SafeAreaView style={styles.container}>
       <KeyboardAvoidingView
@@ -342,10 +338,10 @@ const uploadProfilePic = async (imageUri) => {
 
   formData.append('file', {
     uri: imageUri,
-    type: 'image/jpeg', // or detect dynamically
-    name: 'profile.jpg',
+    type: 'image/jpeg',
+    name: 'profile.jpg', //Only using jpeg for now
   });
-  formData.append('upload_preset', 'profile-upload'); // needed for Cloudinary
+  formData.append('upload_preset', 'profile-upload'); 
   
   try {
     const res = await fetch('https://api.cloudinary.com/v1_1/dnz0ljksa/image/upload', {

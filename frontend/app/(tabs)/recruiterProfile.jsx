@@ -12,7 +12,7 @@ export default function RecruiterProfile() {
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
-  // Form state
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState('');
@@ -23,12 +23,12 @@ export default function RecruiterProfile() {
   const opportunityTypes = ['volunteer', 'internship', 'job', 'event'];
   const mediaTypes = ['Image', 'Video'];
 
-  // Add new media item
+
   const addMediaItem = () => {
     setMediaItems([...mediaItems, { url: '', type: 'Image' }]);
   };
 
-  // Remove media item
+
   const removeMediaItem = (index) => {
     if (mediaItems.length > 1) {
       const updatedItems = [...mediaItems];
@@ -37,14 +37,14 @@ export default function RecruiterProfile() {
     }
   };
 
-  // Update media item
+
   const updateMediaItem = (index, field, value) => {
     const updatedItems = [...mediaItems];
     updatedItems[index] = { ...updatedItems[index], [field]: value };
     setMediaItems(updatedItems);
   };
 
-  // Fetch user data on load
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -59,8 +59,7 @@ export default function RecruiterProfile() {
         const userData = JSON.parse(userStr);
         setUser(userData);
         console.log("User data:", userData);
-        // Fetch recruiter's opportunity
-        fetchOpportunity(token, userData.uuid);
+        fetchOpportunity(userData.uuid);
       } catch (error) {
         console.error('Error loading user data:', error);
         setLoading(false);
@@ -70,35 +69,30 @@ export default function RecruiterProfile() {
     fetchUserData();
   }, []);
 
-  // Fetch recruiter's opportunity
-  const fetchOpportunity = async (token, uuid) => {
+  // Fetch recruiter's opportunity 
+  const fetchOpportunity = async (uuid) => {
     try {
       const response = await fetch(`${config.apiURL}/api/v1/opportunities/author/${uuid}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
         }
       });
 
-      // Check if response is OK before parsing
       if (!response.ok) {
         console.log(`API returned error status: ${response.status}`);
         setLoading(false);
         return;
       }
 
-      // Get response text first to check content
       const responseText = await response.text();
       
-      // Check if response is empty or not JSON
       if (!responseText || responseText.trim() === '') {
         console.log('Empty response from API');
         setLoading(false);
         return;
       }
 
-      // Try to parse JSON
       let responseData;
       try {
         responseData = JSON.parse(responseText);
@@ -109,7 +103,6 @@ export default function RecruiterProfile() {
         return;
       }
       
-      // Handle nested data structure - could be in data.data or just data
       let opportunityData = [];
       
       if (responseData.data && Array.isArray(responseData.data)) {
@@ -123,10 +116,9 @@ export default function RecruiterProfile() {
       console.log("Extracted opportunity data:", opportunityData);
       
       if (opportunityData.length > 0) {
-        const opp = opportunityData[0]; // Get the first opportunity
+        const opp = opportunityData[0]; 
         console.log("Processing opportunity:", opp);
         
-        // Extract media information
         let mediaURLs = [];
         let mediaTypes = [];
         
@@ -139,7 +131,6 @@ export default function RecruiterProfile() {
           });
         }
         
-        // Extract tags
         let tagNames = [];
         if (Array.isArray(opp.tags)) {
           opp.tags.forEach(tagItem => {
@@ -151,7 +142,6 @@ export default function RecruiterProfile() {
           });
         }
         
-        // Map the API response fields to our expected format
         const mappedOpp = {
           id: opp.uuid,
           title: opp.title || '',
@@ -161,7 +151,6 @@ export default function RecruiterProfile() {
           author: opp.postedByUUID || opp.author,
           points: opp.points,
           approved: opp.approved,
-          // Use the extracted media and tags
           tags: tagNames,
           mediaURL: mediaURLs,
           mediaType: mediaTypes
@@ -170,13 +159,11 @@ export default function RecruiterProfile() {
         setOpportunity(mappedOpp);
         console.log("Mapped opportunity:", mappedOpp);
         
-        // Initialize form with existing data
         setTitle(mappedOpp.title);
         setDescription(mappedOpp.description);
         setLocation(mappedOpp.location);
         setType(mappedOpp.type);
         
-        // Set media items
         if (mappedOpp.mediaURL.length > 0) {
           const media = mappedOpp.mediaURL.map((url, index) => ({
             url,
@@ -185,12 +172,10 @@ export default function RecruiterProfile() {
           setMediaItems(media);
         }
         
-        // Set tags
         if (mappedOpp.tags.length > 0) {
           setTags(mappedOpp.tags.join(', '));
         }
       } else {
-        // No opportunities found or unexpected response format
         console.log('No opportunities found for this recruiter or unexpected response format');
         console.log('Response data:', responseData);
       }
@@ -202,7 +187,6 @@ export default function RecruiterProfile() {
     }
   };
 
-  // Handle opportunity update
   const handleUpdateOpportunity = async () => {
     if (!title || !description || !location) {
       Alert.alert('Error', 'Please fill in all required fields');
@@ -212,23 +196,19 @@ export default function RecruiterProfile() {
     try {
       setSaving(true);
       
-      // Get token from AsyncStorage
       const token = await AsyncStorage.getItem('token');
       if (!token) {
         throw new Error('Authentication token not found. Please log in again.');
       }
       
-      // Prepare tags as a simple array of strings
       const tagsArray = tags.split(',').map(tag => tag.trim()).filter(tag => tag);
       
-      // Format media items as objects with type and URL
       const mediaArray = mediaItems.map(item => ({
         type: item.type,
         URL: item.url
       }));
       
       if (opportunity) {
-        // Update existing opportunity - use the expected format
         const updateBody = {
           uuid: opportunity.id,
           title,
@@ -259,7 +239,6 @@ export default function RecruiterProfile() {
           throw new Error('Failed to update opportunity');
         }
 
-        // Try to parse the response
         try {
           const responseText = await response.text();
           console.log("Update response:", responseText);
@@ -273,11 +252,10 @@ export default function RecruiterProfile() {
 
         Alert.alert('Success', 'Your opportunity has been updated');
       } else {
-        // Create new opportunity
         const createBody = {
           title,
           description,
-          points: Math.floor(Math.random() * 500) + 100,
+          points: Math.floor(Math.random() * 500) + 100, //Randomly generated points might have field in future? Some sort of gambling system?
           location,
           opportunityType: type || 'volunteer',
           postedByUUID: user.uuid,
@@ -302,18 +280,16 @@ export default function RecruiterProfile() {
           throw new Error('Failed to create opportunity');
         }
 
-        // Try to parse response
         try {
           const responseText = await response.text();
-          console.log("Create response:", responseText);
+
           
           if (responseText) {
             const responseData = JSON.parse(responseText);
-            console.log("Parsed create response:", responseData);
+
             
             let newOpp = null;
             
-            // Handle different response structures
             if (responseData.data) {
               newOpp = responseData.data;
             } else if (responseData.uuid || responseData.id) {
@@ -346,7 +322,7 @@ export default function RecruiterProfile() {
                 });
               }
               
-              // Map to our format
+              // Map to the format we needing like that
               const mappedOpp = {
                 id: newOpp.uuid || newOpp.id,
                 title: newOpp.title,
@@ -365,7 +341,6 @@ export default function RecruiterProfile() {
           }
         } catch (parseError) {
           console.error('Failed to parse creation response:', parseError);
-          // Still consider it a success even if we can't parse the response
         }
         
         Alert.alert('Success', 'Your opportunity has been created');
@@ -378,7 +353,7 @@ export default function RecruiterProfile() {
     }
   };
 
-  // Handle logout
+
   const handleLogout = async () => {
     try {
       await SecureStore.deleteItemAsync('user');
