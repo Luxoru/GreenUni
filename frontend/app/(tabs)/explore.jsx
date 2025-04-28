@@ -12,12 +12,13 @@ import {
 } from 'react-native';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { API_BASE_URL } from '@/config/api';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
 const CARD_HEIGHT = height * 0.7;
 
-// Memoized card component for better performance
+// Memoized card component for better performance from what Im aware
 const GreenCard = memo(({ item, onLike, onDislike, expanded, setExpanded }) => {
   const animatedHeight = useRef(new Animated.Value(CARD_HEIGHT)).current;
 
@@ -73,7 +74,7 @@ const GreenCard = memo(({ item, onLike, onDislike, expanded, setExpanded }) => {
           {expanded && (
             <View style={{ marginTop: 10 }}>
               <Text style={styles.detail}>📍 Location: {item.location || "N/A"}</Text>
-              <Text style={styles.detail}>Tags: {item.tags.map(tag => tag.tagName).join(", ") || "None"}</Text>
+              <Text style={styles.detail}>Tags: {item.tags.map(tag => tag.tagName).join(", ") || "None"}</Text> //TODO: Need to add dynamic tags
             </View>
           )}
         </View>
@@ -133,7 +134,7 @@ const VolunteerPage = () => {
 
       const user = JSON.parse(userStr);
 
-      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
+      const response = await axios.get(`${API_BASE_URL}/api/v1/opportunities?from=${from}&limit=5&uuid=${user.uuid}`);
 
 
       if (!response.data.data) return [];
@@ -195,36 +196,36 @@ const VolunteerPage = () => {
 
     const user = JSON.parse(userStr);
   
-    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/likes/${user.uuid}/${id}`);
+    const response = await axios.post(`${API_BASE_URL}/api/v1/opportunities/likes/${user.uuid}/${id}`);
 
     console.log(response.data.success)
-
-    if(!response.data.success){
-      Alert.alert('Liking failed', `${response.data.message}`);
+    
+    if (!response.data.success) {
+      Alert.alert('Like failed', response.data.message);
     }
-  
+
     moveToNextCard();
   };
   
 
   const handleDislike = async (id) => {
     console.log(`Disliked post ${id}`);
-
+    
     const userStr = await SecureStore.getItemAsync('user');
-
+    
     if (!userStr) {
       console.warn("No user found in SecureStore.");
       return;
     }
-
+    
     const user = JSON.parse(userStr);
-  
-    const response = await axios.post(`http://192.168.1.58:8080/api/v1/opportunities/dislikes/${user.uuid}/${id}`);
-
-    if(response.data.success == false){
-      Alert.alert('Disliking failed', `${response.data.message}`);
+    
+    const response = await axios.post(`${API_BASE_URL}/api/v1/opportunities/dislikes/${user.uuid}/${id}`);
+    
+    if (!response.data.success) {
+      Alert.alert('Action failed', response.data.message);
     }
-
+    
     moveToNextCard();
   };
 

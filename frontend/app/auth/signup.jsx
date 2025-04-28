@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, StyleSheet, Alert, ScrollView } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { API_BASE_URL } from '@/config/api';
 
 export default function SignUp() {
   const [email, setEmail] = useState('');
@@ -63,7 +64,7 @@ export default function SignUp() {
       }
 
       // Step 1: Create user account
-      const signupResponse = await fetch('http://192.168.1.58:8080/api/v1/auth/signup', {
+      const signupResponse = await fetch(`${API_BASE_URL}/api/v1/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,7 +89,7 @@ export default function SignUp() {
       // Step 2: If user is a recruiter, login to get UUID and create an opportunity
       if (selectedRole === 'Recruiter') {
         // Login to get token and UUID
-        const loginResponse = await fetch('http://192.168.1.58:8080/api/v1/auth/login', {
+        const loginResponse = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -118,7 +119,7 @@ export default function SignUp() {
         const mediaTypeArray = mediaItems.map(item => item.type);
         
         // Step 3: Create opportunity
-        const opportunityResponse = await fetch('http://192.168.1.58:8080/api/v1/opportunities', {
+        const opportunityResponse = await fetch(`${API_BASE_URL}/api/v1/opportunities`, {
           method: 'POST',
           headers: { 
             'Content-Type': 'application/json',

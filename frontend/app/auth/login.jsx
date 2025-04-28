@@ -3,6 +3,7 @@ import { View, Text, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useAuth } from '@/app/auth/AuthContext';
 import * as SecureStore from 'expo-secure-store';
+import { API_BASE_URL } from '@/config/api';
 
 export default function Login() {
   const { login } = useAuth();
@@ -12,7 +13,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://192.168.1.58:8080/api/v1/auth/login', {
+      const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
