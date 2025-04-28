@@ -70,7 +70,7 @@ LEFT JOIN OpportunityTagsTable
   ON OpportunitiesTable.uuid = OpportunityTagsTable.opportunityUUID
 LEFT JOIN TagsTable 
   ON OpportunityTagsTable.tagID = TagsTable.id
-WHERE OpportunitiesTable.uuid IN (%s);
+WHERE OpportunitiesTable.uuid IN (%s) AND OpportunitiesTable.approved = TRUE;
 `
 
 const GetOpportunityByAuthorIDQuery = `
@@ -95,6 +95,7 @@ WITH limited_opportunities AS (
     -- Filter out opportunities the user has disliked
     SELECT opportunityUUID FROM OpportunityDislikesTable WHERE userUUID = ?
   )
+  AND approved = TRUE
   ORDER BY id ASC
   LIMIT ? -- Second parameter: limit
 )
