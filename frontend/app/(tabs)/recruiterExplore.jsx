@@ -13,7 +13,6 @@ import {
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '@/config/api';
 
 const { width, height } = Dimensions.get('window');
 const CARD_WIDTH = width * 0.9;
@@ -131,9 +130,9 @@ const RecruiterPage = () => {
           return;
         }
         
-        // Fetch the recruiter's opportunities - CORRECTED ENDPOINT
+        // Fetch the recruiter's opportunities
         const response = await axios.get(
-          `${API_BASE_URL}/api/v1/opportunities/author/${user.uuid}`,
+          `http://192.168.1.58:8080/api/v1/opportunities/author/${user.uuid}`,
           {
             headers: {
               'Content-Type': 'application/json',
@@ -152,15 +151,17 @@ const RecruiterPage = () => {
         } else if (Array.isArray(response.data) && response.data.length > 0) {
           opportunityData = response.data[0];
         }
-
-        console.log(opportunityData);
+        console.log("ZIGGER")
+        console.log(response.data.data);
         
         if (opportunityData) {
           const uuid = opportunityData.uuid;
           console.log("Found recruiter opportunity UUID:", uuid);
           setOpportunityUUID(uuid);
           // After getting the UUID, fetch students
-          fetchStudents(0, uuid);
+          fetchStudents(0, uuid).then((newStudents) => {
+            setStudents(newStudents);
+          });
         } else {
           console.warn("No opportunities found for this recruiter");
           setInitialLoading(false);
@@ -190,18 +191,43 @@ const RecruiterPage = () => {
       }
       
       console.log("Fetching students for opportunity:", opportunityId, "from page", fromIndex);
-      // CORRECTED ENDPOINT for fetching likes
-      const response = await axios.get(`${API_BASE_URL}/api/v1/opportunities/likes/${opportunityId}?from=${fromIndex}&limit=5`);
+      const response = await axios.get(`http://192.168.1.58:8080/api/v1/opportunities/likes/${opportunityId}?from=${fromIndex}&limit=5`);
       console.log("Likes response:", response.data);
       
-      if (!response.data.data || !response.data.data.likes) return [];
+      if (!response.data.data || !response.data.data.likes) {
+        setInitialLoading(false);
+        return [];
+      }
       
       setPage(response.data.data.lastIndex);
       setInitialLoading(false);
       
-      return response.data.data.likes;
+      // Extract the actual student data from the likes array
+      return response.data.data.likes.map(likeData => {
+        // Log the structure to understand what's in each like object
+        console.log("Like data structure:", JSON.stringify(likeData));
+        
+        // If likeData is already a student object, return it directly
+        if (likeData.studentID || likeData.uuid) {
+          return likeData;
+        }
+        
+        // If likeData contains a student property, return that
+        if (likeData.student) {
+          return likeData.student;
+        }
+        
+        // If likeData is an array, take the first element (assuming it's the student)
+        if (Array.isArray(likeData) && likeData.length > 0) {
+          return likeData[0];
+        }
+        
+        // Default fallback - return as is
+        return likeData;
+      });
     } catch (error) {
       console.error("Error fetching students:", error);
+      setInitialLoading(false);
       return [];
     } finally {
       setIsLoading(false);
@@ -242,33 +268,23 @@ const RecruiterPage = () => {
   const handleLike = async (studentId) => {
     console.log(`Liked student ${studentId}`);
 
-    // const recruiterStr = await SecureStore.getItemAsync('user');
-    // if (!recruiterStr) return;
+    const recruiterStr = await SecureStore.getItemAsync('user');
+    if (!recruiterStr) return;
 
-    // const recruiter = JSON.parse(recruiterStr);
-
-    // const response = await axios.post(`http://192.168.1.58:8080/api/v1/students/likes/${recruiter.uuid}/${studentId}`);
-
-    // if (!response.data.success) {
-    //   Alert.alert('Matching failed', response.data.message);
-    // }
+    const recruiter = JSON.parse(recruiterStr);
+    console.log("Recruiter:", recruiter.uuid);
+    console.log("Student:", studentId);
+    const response = await axios.post(`http://192.168.1.58:8080/api/v1/match?uuid1=${recruiter.uuid}&uuid2=${studentId}`);
+    console.log("Response:", response.data);
+    if (!response.data.success) {
+      Alert.alert('Matching failed', response.data.message);
+    }
 
     moveToNextCard();
   };
 
   const handleDislike = async (studentId) => {
     console.log(`Disliked student ${studentId}`);
-
-    // const recruiterStr = await SecureStore.getItemAsync('user');
-    // if (!recruiterStr) return;
-
-    // const recruiter = JSON.parse(recruiterStr);
-
-    // const response = await axios.post(`http://192.168.1.58:8080/api/v1/students/dislikes/${recruiter.uuid}/${studentId}`);
-
-    // if (!response.data.success) {
-    //   Alert.alert('Action failed', response.data.message);
-    // }
 
     moveToNextCard();
   };

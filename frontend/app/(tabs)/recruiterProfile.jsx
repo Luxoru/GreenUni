@@ -4,7 +4,6 @@ import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '@/config/api';
 
 export default function RecruiterProfile() {
   const [user, setUser] = useState(null);
@@ -74,7 +73,7 @@ export default function RecruiterProfile() {
   // Fetch recruiter's opportunity
   const fetchOpportunity = async (token, uuid) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/opportunities/author/${uuid}`, {
+      const response = await fetch(`http://192.168.1.58:8080/api/v1/opportunities/author/${uuid}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -245,7 +244,7 @@ export default function RecruiterProfile() {
         
         console.log("Updating opportunity with:", updateBody);
         
-        const response = await fetch(`${API_BASE_URL}/api/v1/opportunities/`, {
+        const response = await fetch(`http://192.168.1.58:8080/api/v1/opportunities/`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
@@ -288,7 +287,7 @@ export default function RecruiterProfile() {
         
         console.log("Creating opportunity with:", createBody);
         
-        const response = await fetch(`${API_BASE_URL}/api/v1/opportunities`, {
+        const response = await fetch('http://192.168.1.58:8080/api/v1/opportunities', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

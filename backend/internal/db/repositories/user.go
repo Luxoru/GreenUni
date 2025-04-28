@@ -19,15 +19,6 @@ type UserRepository struct {
 	*BaseRepository
 }
 
-// SQL queries for managing the UserTable
-const CreateUserPassTableQuery = `
-CREATE TABLE IF NOT EXISTS UserTable(
-uuid VARCHAR(36) PRIMARY KEY,
-username VARCHAR(60) UNIQUE NOT NULL,
-email VARCHAR(255) UNIQUE NOT NULL,
-hashed_pass VARCHAR(60) NOT NULL, 
-salt VARCHAR(50) NOT NULL,
-role ENUM ('Student', 'Recruiter', 'Admin'))`
 const AddUserToTableQuery = "INSERT INTO UserTable (uuid,username, email, hashed_pass, salt, role) VALUES (?, ?,?, ?, ?, ?);"
 
 // When we fetch user from db, return everything (all tables here). And format to struct that we need //TODO: change this approach?
@@ -62,14 +53,6 @@ WHERE ut.email = ?`
 //Recruiter table -> On register account portal can register as student or recruiter. When registered initially status set as false
 //Admin manually verifies recruiter and then can log in
 
-const CreateRecruiterTable = `
-CREATE TABLE IF NOT EXISTS RecruiterTable(
-uuid VARCHAR(36) PRIMARY KEY,
-organisationName VARCHAR (100),
-applicationStatus BOOL DEFAULT FALSE,
-FOREIGN KEY (uuid) REFERENCES UserTable (uuid) ON DELETE CASCADE)
-`
-
 const AddNewRecruiterQuery = `
 INSERT INTO RecruiterTable (uuid, organisationName) VALUES (?,?)
 `
@@ -78,15 +61,6 @@ const UpdateRecruiterStatus = `
 UPDATE RecruiterTable
 SET applicationStatus = ?
 WHERE uuid = ?
-`
-
-const CreateUserTagsLikedTableQuery = `
-CREATE TABLE IF NOT EXISTS UserTagsLiked(
-	uuid VARCHAR(36), 
-	tagID int,
-	PRIMARY KEY (uuid, tagID),
-	FOREIGN KEY (uuid) REFERENCES UserTable(uuid) ON DELETE CASCADE,
-	FOREIGN KEY (tagID) REFERENCES TagsTable(id) ON DELETE CASCADE)
 `
 
 // NewUserRepository initializes a new UserRepository instance
@@ -103,7 +77,7 @@ func NewUserRepository(db *mysql.Repository) (*UserRepository, error) {
 
 // CreateTablesQuery returns a list of SQL queries needed to create necessary tables for user management
 func (_ *UserRepository) CreateTablesQuery() *[]string {
-	return &[]string{CreateUserPassTableQuery, CreateUserTagsLikedTableQuery, CreateStudentTagsDisLikedTableQuery, CreateRecruiterTable, CreatePointsTableQuery}
+	return &[]string{} //Was for in code creation
 }
 
 // CreateIndexesQuery returns a list of SQL queries needed to create necessary indexes for user management
@@ -147,7 +121,7 @@ func (repo *UserRepository) AddUser(userModel *models.UserModel, options mysql.I
 // GetUserByID retrieves a user by UUID from the database
 func (repo *UserRepository) GetUserByID(userUUID ...uuid.UUID) (*[]models.RawUserRow, error) {
 	container := repo.Repository
-
+	fmt.Println(userUUID)
 	placeholders := strings.Repeat("?,", len(userUUID))
 	placeholders = placeholders[:len(placeholders)-1]
 

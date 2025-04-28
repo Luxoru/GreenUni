@@ -10,13 +10,6 @@ import (
 	"strings"
 )
 
-const CreateStudentInfoTableQuery = `
-CREATE TABLE IF NOT EXISTS StudentInfoTable(
-uuid VARCHAR(36) PRIMARY KEY,
-description TEXT,
-profile TEXT,
-FOREIGN KEY (uuid) REFERENCES UserTable(uuid) ON DELETE CASCADE)`
-
 const CreateStudentInfoQuery = `
 INSERT INTO StudentInfoTable(uuid, description, profile) VALUES (?,NULL,NULL)`
 
@@ -72,15 +65,6 @@ DELETE FROM UserTagsLiked
 WHERE uuid = ?
 `
 
-const CreateStudentTagsDisLikedTableQuery = `
-CREATE TABLE IF NOT EXISTS UserTagsDisLiked(
-	uuid VARCHAR(36), 
-	tagID int,
-	PRIMARY KEY (uuid, tagID),
-	FOREIGN KEY (uuid) REFERENCES UserTable(uuid) ON DELETE CASCADE,
-	FOREIGN KEY (tagID) REFERENCES TagsTable(id) ON DELETE CASCADE)
-`
-
 const InsertStudentTagsDisLikedQuery = `
 INSERT INTO UserTagsDisLiked(uuid, tagID) VALUES %s
 `
@@ -115,7 +99,7 @@ func NewStudentRepository(db *mysql.Repository) (*StudentRepository, error) {
 }
 
 func (_ *StudentRepository) CreateTablesQuery() *[]string {
-	return &[]string{CreateStudentInfoTableQuery}
+	return &[]string{}
 }
 
 // CreateIndexesQuery returns a list of SQL queries needed to create necessary indexes for user management

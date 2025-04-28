@@ -19,23 +19,6 @@ import (
 
 //Use auto_increment id for easy lookups when doing index based searching. I.e look for posts between ID=12 and ID=20
 
-const CreateOpportunityTable = `
-CREATE TABLE IF NOT EXISTS OpportunitiesTable (
-	id INT AUTO_INCREMENT PRIMARY KEY,
-    uuid VARCHAR(36) NOT NULL UNIQUE,
-    title VARCHAR(100) NOT NULL,
-    description TEXT NOT NULL,
-	points INT NOT NULL,
-    location VARCHAR(100),
-    opportunityType ENUM('event', 'volunteer', 'job', 'issue') NOT NULL,
-    postedByUUID VARCHAR(36) NOT NULL,
-    createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updatedAt DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	approved BOOL DEFAULT FALSE,
-    FOREIGN KEY (postedByUUID) REFERENCES UserTable(uuid) ON DELETE CASCADE
-);
-`
-
 const CreateOpportunityPostedByIndex = "CREATE INDEX idx_opportunity_posted_by ON OpportunitiesTable(postedByUUID);"
 
 const InsertOpportunityQuery = `
@@ -116,17 +99,6 @@ const DeleteOpportunityQuery = "DELETE FROM OpportunitiesTable WHERE uuid = ?"
 
 // Tracks opportunities a user has liked
 
-const CreateOpportunityLikesTable = `
-CREATE TABLE IF NOT EXISTS OpportunityLikesTable (
-    userUUID VARCHAR(36),
-    opportunityUUID VARCHAR(36),
-    likedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (userUUID, opportunityUUID),
-    FOREIGN KEY (userUUID) REFERENCES UserTable(uuid) ON DELETE CASCADE,
-    FOREIGN KEY (opportunityUUID) REFERENCES OpportunitiesTable(uuid) ON DELETE CASCADE
-);
-`
-
 const AddOpportunityLikeQuery = `
 INSERT INTO OpportunityLikesTable(userUUID, opportunityUUID) VALUES (?,?)
 `
@@ -172,17 +144,6 @@ const CreateOpportunityLikedIndex = "CREATE INDEX idx_like_user ON OpportunityLi
 
 // Tracks opportunities a user has disliked
 
-const CreateOpportunityDislikesTable = `
-CREATE TABLE IF NOT EXISTS OpportunityDislikesTable (
-    userUUID VARCHAR(36),
-    opportunityUUID VARCHAR(36),
-    dislikedAt DATETIME DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (userUUID, opportunityUUID),
-    FOREIGN KEY (userUUID) REFERENCES UserTable(uuid) ON DELETE CASCADE,
-    FOREIGN KEY (opportunityUUID) REFERENCES OpportunitiesTable(uuid) ON DELETE CASCADE
-);
-`
-
 const AddOpportunityDisLikeQuery = `
 INSERT INTO OpportunityDislikesTable(userUUID, opportunityUUID) VALUES (?,?)
 `
@@ -211,13 +172,6 @@ WHERE OpportunityDislikesTable.userUUID = ?
 
 const CreateOpportunityDislikedIndex = "CREATE INDEX idx_dislike_user ON OpportunityDislikesTable(userUUID);"
 
-const CreateTagsTable = `
-CREATE TABLE IF NOT EXISTS TagsTable (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    tagName VARCHAR(50) UNIQUE NOT NULL
-);
-`
-
 const CreateTagIndex = "CREATE INDEX idx_tag_name ON TagsTable(tagName);"
 
 const GetTagByName = "SELECT * FROM TagsTable WHERE tagName = %s"
@@ -227,15 +181,6 @@ const GetTagByID = "SELECT tagName from TagsTable WHERE id = ?"
 const DeleteTagQuery = "DELETE FROM TagsTable WHERE tagName = ?" //Inappropriate tag remove etc -> Not linked to posts!
 
 // Opportunity tags
-const CreateOpportunityTagsTable = `
-CREATE TABLE IF NOT EXISTS OpportunityTagsTable (
-    opportunityUUID VARCHAR(36),
-    tagID INT,
-    PRIMARY KEY (opportunityUUID, tagID),
-    FOREIGN KEY (opportunityUUID) REFERENCES OpportunitiesTable(uuid) ON DELETE CASCADE,
-    FOREIGN KEY (tagID) REFERENCES TagsTable(id) ON DELETE CASCADE
-);
-`
 
 const CreateOpportunityTagsQuery = "INSERT INTO OpportunityTagsTable (opportunityUUID, tagID) VALUES (?,?)"
 const GetOpportunityTagsQuery = `
@@ -249,15 +194,6 @@ DELETE FROM OpportunityTagsTable WHERE opportunityUUID = ?
 const GetOpportunitiesByTagQuery = "SELECT opportunityUUID FROM OpportunityTagsTable WHERE tagID = ?"
 
 // Attatching images to opportunity
-const CreateOpportunityMediaTable = `
-CREATE TABLE IF NOT EXISTS OpportunityMediaTable (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    opportunityUUID VARCHAR(36),
-    mediaURL TEXT NOT NULL,
-	mediaType VARCHAR(50) NOT NULL,
-    FOREIGN KEY (opportunityUUID) REFERENCES OpportunitiesTable(uuid) ON DELETE CASCADE
-);
-`
 
 const InsertOpportunityMediaQuery = "INSERT IGNORE INTO OpportunityMediaTable (opportunityUUID, mediaURL, mediaType) VALUES (?,?,?)"
 const GetOpportunityMediaQuery = "SELECT mediaURL, mediaType FROM OpportunityMediaTable WHERE opportunityUUID = ?"
@@ -281,13 +217,8 @@ func NewOpportunityRepository(db *mysql.Repository) (*OpportunityRepository, err
 }
 
 func (_ *OpportunityRepository) CreateTablesQuery() *[]string {
-	queries := []string{CreateOpportunityTable,
-		CreateOpportunityLikesTable,
-		CreateOpportunityDislikesTable,
-		CreateTagsTable,
-		CreateOpportunityTagsTable,
-		CreateOpportunityMediaTable}
-	return &queries
+	var queries []string
+	return &queries //Was for in code creation
 }
 
 // CreateIndexesQuery returns a list of SQL queries needed to create necessary indexes for user management

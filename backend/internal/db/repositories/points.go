@@ -16,10 +16,6 @@ import (
 
 //Literally only storing user points on here
 
-const CreatePointsTableQuery = `
-CREATE TABLE IF NOT EXISTS StudentTable (uuid VARCHAR(36) PRIMARY KEY, points int NOT NULL)
-`
-
 const IncrementPointsQuery = `
 INSERT INTO UserPointsTable (uuid, points)
 VALUES (?, ?)
@@ -56,7 +52,7 @@ func NewPointsRepository(db *mysql.Repository) (*PointsRepository, error) {
 }
 
 func (_ *PointsRepository) CreateTablesQuery() *[]string {
-	queries := []string{CreatePointsTableQuery}
+	queries := []string{}
 	return &queries
 }
 

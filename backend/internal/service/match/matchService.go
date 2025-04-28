@@ -30,6 +30,14 @@ func (service *Service) Match(uuid1 string, uuid2 string) *response.Response {
 func (service *Service) GetMatches(userID string) *response.Response {
 	allIds, err := service.repo.GetMatches(userID)
 
+	if userID == "" {
+		return response.ErrorResponse("userID must be provided")
+	}
+
+	if allIds == nil {
+		return response.ErrorResponse("Doesn't exist")
+	}
+
 	if err != nil {
 		return response.ErrorResponse("Internal error occurred")
 	}

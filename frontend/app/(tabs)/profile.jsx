@@ -16,7 +16,6 @@ import {
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { API_BASE_URL } from '@/config/api';
 
 export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
@@ -60,7 +59,7 @@ export default function ProfilePage() {
       }
 
       // Replace with your actual API endpoint
-      const response = await fetch(`${API_BASE_URL}/api/v1/student/me`, {
+      const response = await fetch('http://192.168.1.58:8080/api/v1/student/me', {
         method: "GET",
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -151,7 +150,7 @@ export default function ProfilePage() {
       };
       
       // Replace with your actual API endpoint
-      const response = await fetch(`${API_BASE_URL}/api/v1/student/me`, {
+      const response = await fetch('http://192.168.1.58:8080/api/v1/student/me', {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

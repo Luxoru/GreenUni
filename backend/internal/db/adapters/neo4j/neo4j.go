@@ -189,6 +189,8 @@ func (repo *Repository) CreateRelation(nodeA *Node, nodeB *Node, relation string
 		WithReturn(true).
 		Build()
 
+	fmt.Println(query)
+
 	_, err := repo.executeQuery(session, query)
 	return err
 }
