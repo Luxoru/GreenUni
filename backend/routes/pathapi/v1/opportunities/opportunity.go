@@ -2,6 +2,7 @@ package opportunities
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
 	"backend/internal/db/repositories"
 	"backend/internal/middleware"
 	"backend/internal/models"
@@ -21,7 +22,7 @@ type Path struct {
 	service *opportunity.OpportunityService
 }
 
-func (path *Path) SetupComponents(repo *mysql.Repository) chi.Router {
+func (path *Path) SetupComponents(repo *mysql.Repository, _ *neo4j.Repository) chi.Router {
 	r := chi.NewRouter()
 
 	repository, err := repositories.NewOpportunityRepository(repo)
