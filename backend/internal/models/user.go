@@ -36,6 +36,7 @@ type UserInfoModel struct {
 	UUID     uuid.UUID `json:"uuid"`
 	Username string    `json:"username"`
 	Role     RoleType  `json:"role"`
+	Email    string    `json:"email,omitempty"`
 }
 
 type RecruiterModel struct {
