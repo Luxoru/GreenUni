@@ -151,7 +151,14 @@ func writeStatus(model *models.UserInfoModel, message string, success bool) *mod
 
 func (service *Service) GetRawUserByID(userID uuid.UUID) (*models.RawUserRow, error) {
 	repository := service.repo
-	return repository.GetUserByID(userID, mysql.QueryOptions{})
+	id, err := repository.GetUserByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	row := *id
+
+	return &row[0], err
 }
 
 // GetUserByID retrieves a user by their UUID.
@@ -159,29 +166,31 @@ func (service *Service) GetUserByID(userID uuid.UUID) (interface{}, error) {
 
 	repository := service.repo
 
-	rawUser, err := repository.GetUserByID(userID, mysql.QueryOptions{})
+	rawUser, err := repository.GetUserByID(userID)
 	if err != nil {
 		return nil, err
 	}
 
+	user := *rawUser
+
 	info := &models.UserInfoModel{
-		UUID:     rawUser.UUID,
-		Username: rawUser.Username,
-		Role:     rawUser.Role,
+		UUID:     user[0].UUID,
+		Username: user[0].Username,
+		Role:     user[0].Role,
 	}
 
-	switch rawUser.Role {
+	switch user[0].Role {
 	case models.Student:
 		return &models.StudentModel{
 			UserInfoModel: info,
-			Points:        rawUser.Points.Int64,
+			Points:        user[0].Points.Int64,
 		}, nil
 
 	case models.Recruiter:
 		return &models.RecruiterModel{
 			UserInfoModel:     info,
-			OrganisationName:  rawUser.OrganisationName.String,
-			ApplicationStatus: rawUser.ApplicationStatus.Bool,
+			OrganisationName:  user[0].OrganisationName.String,
+			ApplicationStatus: user[0].ApplicationStatus.Bool,
 		}, nil
 
 	default:
