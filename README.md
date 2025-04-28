@@ -76,9 +76,3 @@ Written in Go, the backend follows a three-layer architecture:
 - This just happens once when the tables are not on your db
 
 
-## TODO
-
-- Add endpoint/service for saving tag preferences (db already done: UserTagsLiked/UserTagsDisliked (/backend/internal/repositories/user.go))
-- Add endpoint/service for saving recruiters. Basically register/update register status (db already done: RecruiterTable (/backend/internal/repositories/user.go))
-- Add recommendation system endpoint
-- Create a 
