@@ -2,6 +2,7 @@ package auth
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
 	"backend/internal/db/repositories"
 	"backend/internal/service/auth"
 	"backend/internal/utils/http"
@@ -21,7 +22,7 @@ type LoginRequest struct {
 	Password string `json:"password"`
 }
 
-func (path *LoginPath) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
+func (path *LoginPath) SetupComponents(sqlRepository *mysql.Repository, _ *neo4j.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
 	r.Post("/", path.Login)
