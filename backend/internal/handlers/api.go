@@ -2,6 +2,9 @@ package handlers
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
+	"backend/routes/pathapi/v1/match"
+
 	"backend/routes/pathapi"
 	"backend/routes/pathapi/v1/auth"
 	"backend/routes/pathapi/v1/opportunities"
@@ -22,16 +25,17 @@ var routeRegistry = map[string]map[string]func() pathapi.PathComponent{
 		"/auth/login":    auth.LoginRoute,
 		"/opportunities": opportunities.OpportunityRoute,
 		"/student":       student.Route,
+		"/match":         match.Route,
 	},
 }
 
 // Handler sets up the routing for the application using the Chi router
-func Handler(r *chi.Mux, sqlRepository *mysql.Repository) {
+func Handler(r *chi.Mux, sqlRepository *mysql.Repository, neoRepo *neo4j.Repository) {
 	r.Use(chimiddle.StripSlashes)
 	for version, routes := range routeRegistry {
 		r.Route("/api/"+version, func(v chi.Router) {
 			for path, routeFunc := range routes {
-				components := routeFunc().SetupComponents(sqlRepository)
+				components := routeFunc().SetupComponents(sqlRepository, neoRepo)
 				if components == nil {
 					log.Warnf("Unable to setup path for %s", path)
 				}
