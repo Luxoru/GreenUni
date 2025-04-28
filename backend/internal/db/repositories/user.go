@@ -4,8 +4,10 @@ import (
 	"backend/internal/db/adapters/mysql"
 	"backend/internal/models"
 	"database/sql"
+	"fmt"
 	"github.com/google/uuid"
 	log "github.com/sirupsen/logrus"
+	"strings"
 )
 
 // TODO: make async
@@ -37,7 +39,7 @@ LEFT JOIN RecruiterTable rt
     ON rt.uuid = ut.uuid
 LEFT JOIN StudentTable st
     ON st.uuid = ut.uuid
-WHERE ut.uuid = ?`
+WHERE ut.uuid = %s`
 
 const GetUserByUsernameFromTableQuery = `
 SELECT ut.uuid, ut.username, ut.email, ut.hashed_pass, ut.salt, ut.role, rt.organisationName, rt.applicationStatus, st.points FROM UserTable ut
@@ -143,19 +145,26 @@ func (repo *UserRepository) AddUser(userModel *models.UserModel, options mysql.I
 }
 
 // GetUserByID retrieves a user by UUID from the database
-func (repo *UserRepository) GetUserByID(userUUID uuid.UUID, options mysql.QueryOptions) (*models.RawUserRow, error) {
+func (repo *UserRepository) GetUserByID(userUUID ...uuid.UUID) (*[]models.RawUserRow, error) {
 	container := repo.Repository
 
-	columns := []mysql.Column{
-		mysql.NewUUIDColumn("uuid", userUUID),
+	placeholders := strings.Repeat("?,", len(userUUID))
+	placeholders = placeholders[:len(placeholders)-1]
+
+	query := fmt.Sprintf(GetUserByUUIDFromTableQuery, placeholders)
+	var columns []mysql.Column
+	for _, uID := range userUUID {
+		columns = append(columns, mysql.NewUUIDColumn("uuid", uID))
 	}
 
-	rows, err := container.ExecuteQuery(GetUserByUUIDFromTableQuery, columns, options)
+	rows, err := container.ExecuteQuery(query, columns, mysql.QueryOptions{})
 	defer rows.Close()
 	if err != nil {
 		log.Error(err)
 		return nil, err
 	}
+
+	var userRows []models.RawUserRow
 
 	for rows.Next() {
 		var uid uuid.UUID
@@ -172,6 +181,7 @@ func (repo *UserRepository) GetUserByID(userUUID uuid.UUID, options mysql.QueryO
 
 		err := rows.Scan(&uid, &username, &email, &hashedPassword, &salt, &roleName, &organisationName, &applicationStatus, &points)
 		if err != nil {
+			log.Error(err)
 			return nil, err
 		}
 
@@ -193,10 +203,14 @@ func (repo *UserRepository) GetUserByID(userUUID uuid.UUID, options mysql.QueryO
 			Points:            points,
 		}
 
-		return &user, nil
+		userRows = append(userRows, user)
 	}
 
-	return nil, nil
+	if len(userRows) == 0 {
+		return nil, nil
+	}
+
+	return &userRows, nil
 }
 
 // GetUserByName retrieves a user by username from the database
