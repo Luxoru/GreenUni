@@ -2,6 +2,7 @@ package user
 
 import (
 	"backend/internal/db/adapters/mysql"
+	"backend/internal/db/adapters/neo4j"
 	"backend/internal/db/repositories"
 	"backend/internal/models"
 	"backend/internal/security"
@@ -18,7 +19,7 @@ type Path struct {
 	service *user.Service
 }
 
-func (path *Path) SetupComponents(sqlRepository *mysql.Repository) chi.Router {
+func (path *Path) SetupComponents(sqlRepository *mysql.Repository, _ *neo4j.Repository) chi.Router {
 	r := chi.NewRouter()
 	path.router = r
 	r.Get("/me", path.GetCurrentUser)
