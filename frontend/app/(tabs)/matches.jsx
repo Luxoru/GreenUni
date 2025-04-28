@@ -63,9 +63,8 @@ export default function MatchesScreen() {
         return;
       }
 
-      // Step 1: Fetch recruiter's opportunity
-      console.log("Fetching recruiter's opportunity:", recruiterId);
-      const opportunityResponse = await fetch(`${config.apiURL}/api/v1/opportunities/author/${recruiterId}`, {
+      // API call to get matches
+      const response = await fetch(`${config.apiURL}/api/v1/match/${recruiterId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -73,44 +72,48 @@ export default function MatchesScreen() {
         }
       });
 
-      if (!opportunityResponse.ok) {
-        throw new Error(`API error fetching opportunities: ${opportunityResponse.status}`);
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
       }
 
-      const opportunityData = await opportunityResponse.json();
-      console.log("Opportunity data:", opportunityData);
+      const data = await response.json();
+      console.log("Recruiter matches data:", data);
       
-      // Check if we have valid opportunity data
-      if (!opportunityData.data || !opportunityData.data.length) {
-        console.log("No opportunities found for this recruiter");
-        setMatches([]);
-        setLoading(false);
-        return;
-      }
+      if (data.success && data.data) {
+        
+        const studentsWithMedia = await Promise.all(
+          data.data.map(async (student) => {
+            try {
+              const studentResponse = await fetch(`${config.apiURL}/api/v1/student/${student.uuid}`, {
+                method: 'GET',
+                headers: {
+                  'Content-Type': 'application/json'
+                }
+              });
+              
+              if (!studentResponse.ok) {
+                console.log("Student response not ok:", studentResponse);
+                return student;
+              }
+              
+              const studentData = await studentResponse.json();
 
-      // Step 2: Use the opportunity UUID to fetch likes
-      const opportunity = opportunityData.data[0];
-      const opportunityId = opportunity.uuid;
-      console.log("Found opportunity ID:", opportunityId);
+              console.log("Student data:", studentData);
+              
+              return {
+                ...student,
 
-      // Step 3: Fetch likes for this opportunity
-      const likesResponse = await fetch(`${config.apiURL}/api/v1/opportunities/likes/${opportunityId}?from=0&limit=50`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
+                profilePic: studentData.data.profilePic
+              };
 
-      if (!likesResponse.ok) {
-        throw new Error(`API error fetching likes: ${likesResponse.status}`);
-      }
-
-      const likesData = await likesResponse.json();
-      console.log("Likes data:", likesData);
-      
-      if (likesData.success && likesData.data && likesData.data.likes) {
-        setMatches(likesData.data.likes);
+            } catch (error) {
+              console.error("Error fetching student details:", error);
+              return student;
+            }
+          })
+        );
+        
+        setMatches(studentsWithMedia);
       } else {
         setMatches([]);
       }
@@ -217,12 +220,13 @@ export default function MatchesScreen() {
   const renderMatchItem = ({ item }) => {
 
     if (user?.role === 'Recruiter') {
+      console.log("Recruiter match item:", item);
       return (
         <TouchableOpacity 
           style={styles.matchCard}
           onPress={() => Alert.alert(
             'Student Details', 
-            `${item.studentName}\n\nEmail: ${item.studentEmail}\n\n${item.description || 'No description provided'}`
+            `${item.username}\n\nEmail: ${item.email}\n\n${item.description || ''}`
           )}
         >
           <View style={styles.avatarContainer}>
@@ -237,8 +241,8 @@ export default function MatchesScreen() {
             )}
           </View>
           <View style={styles.matchDetails}>
-            <Text style={styles.matchName}>{item.studentName}</Text>
-            <Text style={styles.matchEmail}>{item.studentEmail}</Text>
+            <Text style={styles.matchName}>{item.username}</Text>
+            <Text style={styles.matchEmail}>{item.email}</Text>
             {item.description && (
               <Text style={styles.matchDescription} numberOfLines={2}>
                 {item.description}
@@ -256,12 +260,13 @@ export default function MatchesScreen() {
       );
     } 
     else {
+      console.log("Student match item:", item);
       return (
         <TouchableOpacity 
           style={styles.matchCard}
           onPress={() => Alert.alert(
             'Recruiter Details', 
-            `${item.username}\n\nRole: ${item.role || 'Recruiter'}`
+            `Email: ${item.email}\n\nRole: ${item.role || 'Recruiter'}`
           )}
         >
           <View style={styles.avatarContainer}>
@@ -277,6 +282,7 @@ export default function MatchesScreen() {
           </View>
           <View style={styles.matchDetails}>
             <Text style={styles.matchName}>{item.username}</Text>
+            <Text style={styles.matchEmail}>{item.email}</Text>
             <Text style={styles.matchRole}>{item.role || 'Recruiter'}</Text>
             
             <View style={styles.actionButtons}>

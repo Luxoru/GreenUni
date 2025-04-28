@@ -74,7 +74,7 @@ const GreenCard = memo(({ item, onLike, onDislike, expanded, setExpanded }) => {
           {expanded && (
             <View style={{ marginTop: 10 }}>
               <Text style={styles.detail}>📍 Location: {item.location || "N/A"}</Text>
-              <Text style={styles.detail}>Tags: {item.tags.map(tag => tag.tagName).join(", ") || "None"}</Text> {/*TODO: Need to add dynamic tags*/}
+              <Text style={styles.detail}>Tags: {item.tags.map(tag => tag.tagName).join(", ") || "None"}</Text> 
             </View>
           )}
         </View>

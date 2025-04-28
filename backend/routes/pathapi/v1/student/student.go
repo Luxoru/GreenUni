@@ -23,6 +23,7 @@ func (path *Path) SetupComponents(sqlRepository *mysql.Repository, _ *neo4j.Repo
 	r := chi.NewRouter()
 	path.router = r
 	r.Get("/me", path.GetCurrentUserInfo)
+	r.Get("/{userID}", path.GetUser)
 	r.Put("/me", path.UpdateCurrentUserInfo)
 
 	repository, err := repositories.NewStudentRepository(sqlRepository)
@@ -55,6 +56,13 @@ func (path *Path) UpdateCurrentUserInfo(writer http.ResponseWriter, request *htt
 	returnMessage := path.service.UpdateStudentInfo(studentInfo)
 
 	response.WriteJson(writer, returnMessage)
+}
+
+func (path *Path) GetUser(writer http.ResponseWriter, request *http.Request) {
+	userID := chi.URLParam(request, "userID")
+
+	res := path.service.GetStudentInfo(userID)
+	response.WriteJson(writer, res)
 }
 
 func Route() pathapi.PathComponent {
