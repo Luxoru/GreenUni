@@ -21,25 +21,7 @@ export default function RootLayout() {
 
   let hasClearedStorage = false;
 
-  useEffect(() => {
-    const prepare = async () => {
-      if (loaded && !hasClearedStorage && __DEV__) {
-        hasClearedStorage = true;
-        await AsyncStorage.clear();
-        console.log('✅ AsyncStorage cleared on reload');
-      }
-
-      if (loaded) {
-        await SplashScreen.hideAsync();
-      }
-    };
-
-    prepare();
-  }, [loaded]);
-
-  if (!loaded) {
-    return null;
-  }
+  
 
   return (
     <AuthProvider>
